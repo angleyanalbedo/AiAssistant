@@ -15,6 +15,7 @@ namespace AiAssistant.UIControls
         private static readonly HttpClient _httpClient = new HttpClient();
         private string _ghostText = string.Empty;
         private int _ghostTextPosition = -1;
+        private bool _isInternalChange = false;
         private const int GHOST_TEXT_STYLE = Style.Default + 1; // Use a style not used by lexers
 
         public string ServerApiUrl { get; set; } = "http://localhost:5000/api/completion";
@@ -27,7 +28,7 @@ namespace AiAssistant.UIControls
         {
             // Basic Scintilla setup
             this.WrapMode = WrapMode.Word;
-            this.Lexer = Lexer.Null;
+            this.LexerName = "null";
 
             // Styling
             this.Styles[Style.Default].Font = "Consolas";
@@ -54,8 +55,8 @@ namespace AiAssistant.UIControls
 
         private void AiAutoCompleteTextBox_TextChanged(object sender, EventArgs e)
         {
-            // Don't trigger for style changes or ghost text insertion
-            if (this.ModifiedBy.HasFlag(ModificationFlags.ChangeStyle) || !string.IsNullOrEmpty(_ghostText))
+            // Don't trigger for internal changes (like ghost text insertion/removal)
+            if (_isInternalChange)
             {
                 return;
             }
@@ -176,14 +177,22 @@ namespace AiAssistant.UIControls
                 return;
             }
 
-            RemoveGhostText(); // Clear any existing ghost text
+            _isInternalChange = true;
+            try
+            {
+                RemoveGhostText(); // Clear any existing ghost text
 
-            _ghostText = completion;
-            _ghostTextPosition = this.CurrentPosition;
+                _ghostText = completion;
+                _ghostTextPosition = this.CurrentPosition;
 
-            this.InsertText(_ghostTextPosition, _ghostText);
-            this.StartStyling(_ghostTextPosition);
-            this.SetStyling(_ghostText.Length, GHOST_TEXT_STYLE);
+                this.InsertText(_ghostTextPosition, _ghostText);
+                this.StartStyling(_ghostTextPosition);
+                this.SetStyling(_ghostText.Length, GHOST_TEXT_STYLE);
+            }
+            finally
+            {
+                _isInternalChange = false;
+            }
         }
 
         private void RemoveGhostText()
@@ -215,7 +224,15 @@ namespace AiAssistant.UIControls
                 else if (e.KeyCode != Keys.ShiftKey && e.KeyCode != Keys.ControlKey && e.KeyCode != Keys.Alt)
                 {
                     // Any other key press removes ghost text
-                    RemoveGhostText();
+                    _isInternalChange = true;
+                    try
+                    {
+                        RemoveGhostText();
+                    }
+                    finally
+                    {
+                        _isInternalChange = false;
+                    }
                 }
             }
         }

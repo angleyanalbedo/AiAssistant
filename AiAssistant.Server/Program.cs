@@ -36,6 +36,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseStaticFiles();
+
 // 定义根路径返回一个简单的 HTML UI 用于测试
 app.MapGet("/", (HttpContext context) =>
 {

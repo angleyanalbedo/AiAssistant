@@ -6,10 +6,15 @@
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>AiAssistant.WinFormsClient</RootNamespace>
     <AssemblyName>AiAssistant.WinFormsClient</AssemblyName>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Net.Http" />
   </ItemGroup>
 
 </Project>

@@ -14,6 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 // 添加服务到容器
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHttpClient();
 
 // 动态注入 AI 引擎
 if (IsClaudeCliAvailable())

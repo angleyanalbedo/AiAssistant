@@ -4,6 +4,7 @@ using AiAssistant.Server.Models;
 using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Rewrite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -24,6 +25,8 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    // 将根 URL 重定向到 Swagger UI
+    app.UseRewriter(new RewriteOptions().AddRedirect("^$", "swagger"));
 }
 
 app.UseDefaultFiles();

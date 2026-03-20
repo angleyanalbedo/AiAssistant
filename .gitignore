@@ -43,3 +43,4 @@ project.assets.json
 *.vsix
 *~
 .aider*
+/.vs/

@@ -17,15 +17,20 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddHttpClient();
 
 // 动态注入 AI 引擎
-if (IsClaudeCliAvailable())
+var apiKey = builder.Configuration["OpenAiConfig:ApiKey"];
+if (!string.IsNullOrEmpty(apiKey) && apiKey != "YOUR_API_KEY")
 {
-    Console.WriteLine("Claude CLI detected. Using ClaudeCodeProcessEngine.");
+    Console.WriteLine("API key found in configuration. Using BasicApiEngine.");
+    builder.Services.AddHttpClient<IAiEngine, BasicApiEngine>();
+}
+else if (IsClaudeCliAvailable())
+{
+    Console.WriteLine("API key not configured. Claude CLI detected. Using ClaudeCodeProcessEngine.");
     builder.Services.AddSingleton<IAiEngine, ClaudeCodeProcessEngine>();
 }
 else
 {
-    Console.WriteLine("Claude CLI not found. Using BasicApiEngine.");
-    // 使用 AddHttpClient 注册 BasicApiEngine，以便正确注入和管理 HttpClient 实例
+    Console.WriteLine("API key not configured and Claude CLI not found. Falling back to BasicApiEngine.");
     builder.Services.AddHttpClient<IAiEngine, BasicApiEngine>();
 }
 

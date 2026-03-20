@@ -1,8 +1,9 @@
 using AiAssistant.Server.Interfaces;
-using Microsoft.Extensions.AI;
-using Microsoft.Extensions.AI.OpenAI;
 using Microsoft.Extensions.Configuration;
+using OpenAI;
+using OpenAI.Chat;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace AiAssistant.Server.Engines
@@ -23,7 +24,7 @@ namespace AiAssistant.Server.Engines
                 var activeProvider = _configuration["AiProviders:Active"];
                 if (string.IsNullOrEmpty(activeProvider))
                 {
-                    return "错误: 未在 appsettings.json 中配置活动的 AI 提供商 (AiProviders:Active)。";
+                    return "错误: 未配置活动 AI 提供商";
                 }
 
                 var configPath = $"AiProviders:Endpoints:{activeProvider}";
@@ -33,28 +34,36 @@ namespace AiAssistant.Server.Engines
 
                 if (string.IsNullOrEmpty(baseUrl) || string.IsNullOrEmpty(model))
                 {
-                    return $"错误: 提供商 '{activeProvider}' 的 BaseUrl 或 Model 未配置。";
+                    return $"错误: 提供商 '{activeProvider}' 配置不完整";
                 }
 
-                // 兼容本地 Ollama 等不需要 key 的情况
                 if (string.IsNullOrEmpty(apiKey))
                 {
                     apiKey = "dummy-key";
                 }
 
-                var client = new OpenAI.OpenAIClient(new System.ClientModel.ApiKeyCredential(apiKey), new OpenAI.OpenAIClientOptions { Endpoint = new Uri(baseUrl) });
-                // 先从 OpenAIClient 获取官方的 ChatClient
-                var officialChatClient = client.GetChatClient(model);
-                // 再将官方的 ChatClient 转换为统一的 IChatClient 标准接口
-                var chatClient = officialChatClient.AsChatClient();
+                var client = new OpenAIClient(
+                    new System.ClientModel.ApiKeyCredential(apiKey),
+                    new OpenAIClientOptions
+                    {
+                        Endpoint = new Uri(baseUrl)
+                    }
+                );
 
-                var response = await chatClient.CompleteAsync(message);
+                var chatClient = client.GetChatClient(model);
 
-                return response.Message.Text;
+                var messages = new List<ChatMessage>
+                {
+                    new UserChatMessage(message)
+                };
+
+                var response = await chatClient.CompleteChatAsync(messages);
+
+                return response.Value.Content[0].Text;
             }
             catch (Exception ex)
             {
-                return $"调用 AI 服务时发生异常: {ex.Message}";
+                return $"调用 AI 服务异常: {ex.Message}";
             }
         }
     }

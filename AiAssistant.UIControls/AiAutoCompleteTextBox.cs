@@ -15,6 +15,10 @@ namespace AiAssistant.UIControls
         private bool _isAcceptingGhostText = false;
 
         public string ServerApiUrl { get; set; } = "http://localhost:5000/api/completion";
+        public AiConnectionMode ConnectionMode { get; set; } = AiConnectionMode.LocalServer;
+        public string DirectApiBaseUrl { get; set; } = "https://api.openai.com/v1";
+        public string DirectApiKey { get; set; } = "";
+        public string DirectApiModel { get; set; } = "gpt-3.5-turbo";
 
         public AiAutoCompleteTextBox()
         {
@@ -55,16 +59,47 @@ namespace AiAssistant.UIControls
 
             try
             {
-                var request = new { text = this.Text };
-                var content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync(ServerApiUrl, content);
-                response.EnsureSuccessStatusCode();
-                var responseString = await response.Content.ReadAsStringAsync();
-                var completionResponse = JsonConvert.DeserializeObject<CompletionResponse>(responseString);
-
-                if (!string.IsNullOrEmpty(completionResponse.Completion))
+                if (ConnectionMode == AiConnectionMode.LocalServer)
                 {
-                    ShowGhostText(completionResponse.Completion);
+                    var request = new { text = this.Text };
+                    var content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
+                    var response = await _httpClient.PostAsync(ServerApiUrl, content);
+                    response.EnsureSuccessStatusCode();
+                    var responseString = await response.Content.ReadAsStringAsync();
+                    var completionResponse = JsonConvert.DeserializeObject<CompletionResponse>(responseString);
+
+                    if (!string.IsNullOrEmpty(completionResponse.Completion))
+                    {
+                        ShowGhostText(completionResponse.Completion);
+                    }
+                }
+                else // DirectOpenAI
+                {
+                    var openAiPayload = new
+                    {
+                        model = DirectApiModel,
+                        messages = new[]
+                        {
+                            new { role = "system", content = "你是一个代码补全助手，只输出补全的代码，不要任何解释" },
+                            new { role = "user", content = this.Text }
+                        }
+                    };
+                    var requestUrl = DirectApiBaseUrl.TrimEnd('/') + "/chat/completions";
+                    var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
+                    request.Headers.Add("Authorization", $"Bearer {DirectApiKey}");
+                    request.Content = new StringContent(JsonConvert.SerializeObject(openAiPayload), Encoding.UTF8, "application/json");
+
+                    var response = await _httpClient.SendAsync(request);
+                    var responseString = await response.Content.ReadAsStringAsync();
+                    response.EnsureSuccessStatusCode();
+
+                    dynamic result = JsonConvert.DeserializeObject(responseString);
+                    string completion = result.choices[0].message.content;
+
+                    if (!string.IsNullOrEmpty(completion))
+                    {
+                        ShowGhostText(completion);
+                    }
                 }
             }
             catch (Exception)

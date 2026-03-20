@@ -15,7 +15,11 @@ namespace AiAssistant.UITester
             var chatWidget = new AiChatWidget
             {
                 Dock = DockStyle.Right,
-                Width = 300
+                Width = 300,
+                // To test DirectOpenAI mode, uncomment and fill in the following lines:
+                // ConnectionMode = AiConnectionMode.DirectOpenAI,
+                // DirectApiBaseUrl = "https://api.openai.com/v1",
+                // DirectApiKey = "sk-..."
             };
 
             var autoCompleteTextBox = new AiAutoCompleteTextBox

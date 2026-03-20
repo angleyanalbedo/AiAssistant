@@ -16,6 +16,10 @@ namespace AiAssistant.UIControls
         private static readonly HttpClient _httpClient = new HttpClient();
 
         public string ServerApiUrl { get; set; } = "http://localhost:5000/api/chat";
+        public AiConnectionMode ConnectionMode { get; set; } = AiConnectionMode.LocalServer;
+        public string DirectApiBaseUrl { get; set; } = "https://api.openai.com/v1";
+        public string DirectApiKey { get; set; } = "";
+        public string DirectApiModel { get; set; } = "gpt-3.5-turbo";
 
         public AiChatWidget()
         {
@@ -78,13 +82,36 @@ namespace AiAssistant.UIControls
 
             try
             {
-                var request = new { message };
-                var content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync(ServerApiUrl, content);
-                response.EnsureSuccessStatusCode();
-                var responseString = await response.Content.ReadAsStringAsync();
-                var chatResponse = JsonConvert.DeserializeObject<ChatResponse>(responseString);
-                AppendMessage("AI: ", chatResponse.Reply, Color.Green);
+                if (ConnectionMode == AiConnectionMode.LocalServer)
+                {
+                    var request = new { message };
+                    var content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
+                    var response = await _httpClient.PostAsync(ServerApiUrl, content);
+                    response.EnsureSuccessStatusCode();
+                    var responseString = await response.Content.ReadAsStringAsync();
+                    var chatResponse = JsonConvert.DeserializeObject<ChatResponse>(responseString);
+                    AppendMessage("AI: ", chatResponse.Reply, Color.Green);
+                }
+                else // DirectOpenAI
+                {
+                    var openAiPayload = new
+                    {
+                        model = DirectApiModel,
+                        messages = new[] { new { role = "user", content = message } }
+                    };
+                    var requestUrl = DirectApiBaseUrl.TrimEnd('/') + "/chat/completions";
+                    var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
+                    request.Headers.Add("Authorization", $"Bearer {DirectApiKey}");
+                    request.Content = new StringContent(JsonConvert.SerializeObject(openAiPayload), Encoding.UTF8, "application/json");
+
+                    var response = await _httpClient.SendAsync(request);
+                    var responseString = await response.Content.ReadAsStringAsync();
+                    response.EnsureSuccessStatusCode();
+
+                    dynamic result = JsonConvert.DeserializeObject(responseString);
+                    string reply = result.choices[0].message.content;
+                    AppendMessage("AI: ", reply, Color.Green);
+                }
             }
             catch (Exception ex)
             {

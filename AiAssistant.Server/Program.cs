@@ -36,6 +36,69 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// 定义根路径返回一个简单的 HTML UI 用于测试
+app.MapGet("/", (HttpContext context) =>
+{
+    context.Response.ContentType = "text/html; charset=utf-8";
+    return context.Response.WriteAsync(@"
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Assistant Test UI</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: auto; padding: 1em; }
+        textarea { width: 100%; height: 200px; box-sizing: border-box; margin-bottom: 1em; }
+        #response { white-space: pre-wrap; background: #f4f4f4; padding: 1em; border: 1px solid #ddd; margin-top: 1em; min-height: 100px; }
+        button { padding: 0.5em 1em; }
+    </style>
+</head>
+<body>
+    <h1>AI Assistant Test UI</h1>
+    <form id=""chatForm"">
+        <textarea id=""message"" name=""message"" placeholder=""Enter your message...""></textarea>
+        <button type=""submit"">Send</button>
+    </form>
+    <h2>Response:</h2>
+    <pre id=""response""></pre>
+
+    <script>
+        document.getElementById('chatForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const message = document.getElementById('message').value;
+            const responseDiv = document.getElementById('response');
+            const submitButton = this.querySelector('button[type=""submit""]');
+            
+            responseDiv.textContent = 'Waiting for response...';
+            submitButton.disabled = true;
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message }),
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}. ${errorText}`);
+                }
+
+                const data = await response.json();
+                responseDiv.textContent = data.reply;
+            } catch (error) {
+                responseDiv.textContent = 'Error: ' + error.message;
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
+    ");
+});
+
 // 定义聊天 API 端点
 app.MapPost("/api/chat", async (ChatRequest request, IAiEngine engine) =>
 {

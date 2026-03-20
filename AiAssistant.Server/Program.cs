@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -42,8 +43,9 @@ app.MapPost("/api/chat", async (ChatRequest request, IAiEngine engine) =>
     {
         return Results.BadRequest("Message cannot be empty.");
     }
+
     var reply = await engine.ChatAsync(request.Message);
-    return Results.Ok(new { Reply = reply });
+    return Results.Ok(new { reply });
 });
 
 app.Run();

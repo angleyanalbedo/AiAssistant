@@ -44,3 +44,6 @@ project.assets.json
 *~
 .aider*
 /.vs/
+
+# Configuration files with secrets
+AiAssistant.Server/appsettings.json

@@ -1,2 +1,4 @@
 <Solution>
+  <Project Path="AiAssistant.Server\AiAssistant.Server.csproj"/>
+  <Project Path="AiAssistant.WinFormsClient\AiAssistant.WinFormsClient.csproj"/>
 </Solution>

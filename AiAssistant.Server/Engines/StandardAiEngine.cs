@@ -1,6 +1,5 @@
 using AiAssistant.Server.Interfaces;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.AI.OpenAI;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Threading.Tasks;

@@ -18,18 +18,19 @@ namespace AiAssistant.Server.Engines
         private readonly string _apiKey;
         private readonly string _model;
 
-        // 用于 OpenAI 兼容 API 结构的私有记录
-        private record OpenAiMessage([property: JsonPropertyName("role")] string Role, [property: JsonPropertyName("content")] string Content);
-        private record OpenAiRequest([property: JsonPropertyName("model")] string Model, [property: JsonPropertyName("messages")] List<OpenAiMessage> Messages);
-        private record OpenAiChoice([property: JsonPropertyName("message")] OpenAiMessage Message);
-        private record OpenAiResponse([property: JsonPropertyName("choices")] List<OpenAiChoice> Choices);
+        // 用于 Google Gemini API 结构的私有记录
+        private record GeminiPart([property: JsonPropertyName("text")] string Text);
+        private record GeminiContent([property: JsonPropertyName("parts")] List<GeminiPart> Parts, [property: JsonPropertyName("role")] string Role = "user");
+        private record GeminiRequest([property: JsonPropertyName("contents")] List<GeminiContent> Contents);
+        private record GeminiResponseCandidate([property: JsonPropertyName("content")] GeminiContent Content);
+        private record GeminiResponse([property: JsonPropertyName("candidates")] List<GeminiResponseCandidate> Candidates);
 
         public BasicApiEngine(HttpClient httpClient, IConfiguration configuration)
         {
             _httpClient = httpClient;
             _baseUrl = configuration["OpenAiConfig:BaseUrl"];
             _apiKey = configuration["OpenAiConfig:ApiKey"];
-            _model = configuration["OpenAiConfig:Model"] ?? "gpt-3.5-turbo"; // 默认模型
+            _model = configuration["OpenAiConfig:Model"] ?? "gemini-1.5-flash-latest"; // 默认模型
 
             if (string.IsNullOrEmpty(_baseUrl) || string.IsNullOrEmpty(_apiKey))
             {
@@ -42,19 +43,22 @@ namespace AiAssistant.Server.Engines
         {
             if (string.IsNullOrEmpty(_baseUrl) || string.IsNullOrEmpty(_apiKey) || _apiKey == "YOUR_API_KEY")
             {
-                return "错误: OpenAI API BaseUrl 或 ApiKey 未在配置文件中正确设置。请检查 appsettings.json 中的 OpenAiConfig 节点，并确保 ApiKey 已被替换。";
+                return "错误: API BaseUrl 或 ApiKey 未在配置文件中正确设置。请检查 appsettings.json 中的 OpenAiConfig 节点，并确保 ApiKey 已被替换。";
             }
 
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+            // Google Gemini API 使用 API Key 作为查询参数，而不是 Bearer Token
+            _httpClient.DefaultRequestHeaders.Authorization = null;
 
-            var requestPayload = new OpenAiRequest(
-                _model,
-                new List<OpenAiMessage> { new("user", message) }
+            var requestPayload = new GeminiRequest(
+                new List<GeminiContent> {
+                    new(new List<GeminiPart> { new(message) })
+                }
             );
 
             try
             {
-                var requestUrl = _baseUrl.TrimEnd('/') + "/chat/completions";
+                // Gemini API 的 URL 结构: .../v1beta/models/{model}:generateContent?key={apiKey}
+                var requestUrl = $"{_baseUrl.TrimEnd('/')}/models/{_model}:generateContent?key={_apiKey}";
                 var response = await _httpClient.PostAsJsonAsync(requestUrl, requestPayload);
 
                 if (!response.IsSuccessStatusCode)
@@ -63,8 +67,9 @@ namespace AiAssistant.Server.Engines
                     return $"API 错误: {response.StatusCode}。详情: {errorContent}";
                 }
 
-                var apiResponse = await response.Content.ReadFromJsonAsync<OpenAiResponse>();
-                return apiResponse?.Choices?.FirstOrDefault()?.Message?.Content?.Trim() ?? "AI 未返回有效回复。";
+                var apiResponse = await response.Content.ReadFromJsonAsync<GeminiResponse>();
+                // Gemini 的回复结构与 OpenAI 不同
+                return apiResponse?.Candidates?.FirstOrDefault()?.Content?.Parts?.FirstOrDefault()?.Text?.Trim() ?? "AI 未返回有效回复。";
             }
             catch (Exception ex)
             {

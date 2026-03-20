@@ -27,9 +27,9 @@ namespace AiAssistant.Server.Engines
         public BasicApiEngine(HttpClient httpClient, IConfiguration configuration)
         {
             _httpClient = httpClient;
-            _apiUrl = configuration["OpenAI:ApiUrl"];
-            _apiKey = configuration["OpenAI:ApiKey"];
-            _model = configuration["OpenAI:Model"] ?? "gpt-3.5-turbo"; // 默认模型
+            _apiUrl = configuration["OpenAiConfig:ApiUrl"];
+            _apiKey = configuration["OpenAiConfig:ApiKey"];
+            _model = configuration["OpenAiConfig:Model"] ?? "gpt-3.5-turbo"; // 默认模型
 
             if (string.IsNullOrEmpty(_apiUrl) || string.IsNullOrEmpty(_apiKey))
             {
@@ -40,9 +40,9 @@ namespace AiAssistant.Server.Engines
 
         public async Task<string> ChatAsync(string message)
         {
-            if (string.IsNullOrEmpty(_apiUrl) || string.IsNullOrEmpty(_apiKey))
+            if (string.IsNullOrEmpty(_apiUrl) || string.IsNullOrEmpty(_apiKey) || _apiKey == "YOUR_API_KEY")
             {
-                return "错误: OpenAI API URL 或 ApiKey 未在配置文件中设置。";
+                return "错误: OpenAI API URL 或 ApiKey 未在配置文件中正确设置。请检查 appsettings.json 中的 OpenAiConfig 节点，并确保 ApiKey 已被替换。";
             }
 
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);

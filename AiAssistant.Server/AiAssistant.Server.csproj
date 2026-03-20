@@ -9,4 +9,11 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="Engines\BasicApiEngine.cs" />
+    <Compile Include="Engines\ClaudeCodeProcessEngine.cs" />
+    <Compile Include="Interfaces\IAiEngine.cs" />
+    <Compile Include="Models\ChatRequest.cs" />
+  </ItemGroup>
+
 </Project>

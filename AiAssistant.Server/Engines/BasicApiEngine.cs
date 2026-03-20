@@ -54,7 +54,8 @@ namespace AiAssistant.Server.Engines
 
             try
             {
-                var response = await _httpClient.PostAsJsonAsync(_baseUrl, requestPayload);
+                var requestUrl = _baseUrl.TrimEnd('/') + "/chat/completions";
+                var response = await _httpClient.PostAsJsonAsync(requestUrl, requestPayload);
 
                 if (!response.IsSuccessStatusCode)
                 {

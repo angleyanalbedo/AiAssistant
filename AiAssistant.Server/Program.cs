@@ -25,7 +25,8 @@ if (IsClaudeCliAvailable())
 else
 {
     Console.WriteLine("Claude CLI not found. Using BasicApiEngine.");
-    builder.Services.AddSingleton<IAiEngine, BasicApiEngine>();
+    // 使用 AddHttpClient 注册 BasicApiEngine，以便正确注入和管理 HttpClient 实例
+    builder.Services.AddHttpClient<IAiEngine, BasicApiEngine>();
 }
 
 var app = builder.Build();

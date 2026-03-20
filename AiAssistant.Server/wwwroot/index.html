@@ -44,6 +44,8 @@
             userInput.value = '';
             submitButton.disabled = true;
 
+            const thinkingMessage = appendMessage('思考中...', 'ai');
+
             try {
                 const response = await fetch('/api/chat', {
                     method: 'POST',
@@ -57,12 +59,13 @@
                 }
 
                 const data = await response.json();
-                appendMessage(data.reply, 'ai');
+                thinkingMessage.querySelector('.message-content').textContent = data.reply;
             } catch (error) {
-                appendMessage(`Error: ${error.message}`, 'ai');
+                thinkingMessage.querySelector('.message-content').textContent = `Error: ${error.message}`;
             } finally {
                 submitButton.disabled = false;
                 userInput.focus();
+                chatLog.scrollTop = chatLog.scrollHeight;
             }
         }
 
@@ -77,6 +80,7 @@
             messageWrapper.appendChild(messageContent);
             chatLog.appendChild(messageWrapper);
             chatLog.scrollTop = chatLog.scrollHeight;
+            return messageWrapper;
         }
     </script>
 </body>

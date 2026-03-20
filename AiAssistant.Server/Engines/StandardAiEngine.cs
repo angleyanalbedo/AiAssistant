@@ -1,4 +1,5 @@
 using AiAssistant.Server.Interfaces;
+using AiAssistant.Server.Utils;
 using Microsoft.Extensions.Configuration;
 using OpenAI;
 using OpenAI.Chat;
@@ -59,7 +60,7 @@ namespace AiAssistant.Server.Engines
 
                 var response = await chatClient.CompleteChatAsync(messages);
 
-                return response.Value.Content[0].Text;
+                return AnsiStripper.Clean(response.Value.Content[0].Text);
             }
             catch (Exception ex)
             {

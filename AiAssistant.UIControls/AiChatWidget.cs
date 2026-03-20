@@ -94,23 +94,46 @@ namespace AiAssistant.UIControls
                 }
                 else // DirectOpenAI
                 {
-                    var openAiPayload = new
+                    if (DirectApiBaseUrl.Contains("googleapis.com"))
                     {
-                        model = DirectApiModel,
-                        messages = new[] { new { role = "user", content = message } }
-                    };
-                    var requestUrl = DirectApiBaseUrl.TrimEnd('/') + "/chat/completions";
-                    var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
-                    request.Headers.Add("Authorization", $"Bearer {DirectApiKey}");
-                    request.Content = new StringContent(JsonConvert.SerializeObject(openAiPayload), Encoding.UTF8, "application/json");
+                        // Google Gemini API logic
+                        var geminiPayload = new
+                        {
+                            contents = new[] { new { parts = new[] { new { text = message } } } }
+                        };
+                        var requestUrl = $"{DirectApiBaseUrl.TrimEnd('/')}/models/{DirectApiModel}:generateContent?key={DirectApiKey}";
+                        var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
+                        request.Content = new StringContent(JsonConvert.SerializeObject(geminiPayload), Encoding.UTF8, "application/json");
 
-                    var response = await _httpClient.SendAsync(request);
-                    var responseString = await response.Content.ReadAsStringAsync();
-                    response.EnsureSuccessStatusCode();
+                        var response = await _httpClient.SendAsync(request);
+                        var responseString = await response.Content.ReadAsStringAsync();
+                        response.EnsureSuccessStatusCode();
 
-                    dynamic result = JsonConvert.DeserializeObject(responseString);
-                    string reply = result.choices[0].message.content;
-                    AppendMessage("AI: ", reply, Color.Green);
+                        dynamic result = JsonConvert.DeserializeObject(responseString);
+                        string reply = result.candidates[0].content.parts[0].text;
+                        AppendMessage("AI: ", reply, Color.Green);
+                    }
+                    else
+                    {
+                        // Standard OpenAI API logic
+                        var openAiPayload = new
+                        {
+                            model = DirectApiModel,
+                            messages = new[] { new { role = "user", content = message } }
+                        };
+                        var requestUrl = DirectApiBaseUrl.TrimEnd('/') + "/chat/completions";
+                        var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
+                        request.Headers.Add("Authorization", $"Bearer {DirectApiKey}");
+                        request.Content = new StringContent(JsonConvert.SerializeObject(openAiPayload), Encoding.UTF8, "application/json");
+
+                        var response = await _httpClient.SendAsync(request);
+                        var responseString = await response.Content.ReadAsStringAsync();
+                        response.EnsureSuccessStatusCode();
+
+                        dynamic result = JsonConvert.DeserializeObject(responseString);
+                        string reply = result.choices[0].message.content;
+                        AppendMessage("AI: ", reply, Color.Green);
+                    }
                 }
             }
             catch (Exception ex)

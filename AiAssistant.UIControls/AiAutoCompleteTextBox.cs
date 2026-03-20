@@ -75,30 +75,58 @@ namespace AiAssistant.UIControls
                 }
                 else // DirectOpenAI
                 {
-                    var openAiPayload = new
+                    if (DirectApiBaseUrl.Contains("googleapis.com"))
                     {
-                        model = DirectApiModel,
-                        messages = new[]
+                        // Google Gemini API logic
+                        var geminiPayload = new
                         {
-                            new { role = "system", content = "你是一个代码补全助手，只输出补全的代码，不要任何解释" },
-                            new { role = "user", content = this.Text }
+                            systemInstruction = new { parts = new[] { new { text = "你是一个代码补全助手，只输出补全的代码，不要任何解释" } } },
+                            contents = new[] { new { parts = new[] { new { text = this.Text } } } }
+                        };
+                        var requestUrl = $"{DirectApiBaseUrl.TrimEnd('/')}/models/{DirectApiModel}:generateContent?key={DirectApiKey}";
+                        var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
+                        request.Content = new StringContent(JsonConvert.SerializeObject(geminiPayload), Encoding.UTF8, "application/json");
+
+                        var response = await _httpClient.SendAsync(request);
+                        var responseString = await response.Content.ReadAsStringAsync();
+                        response.EnsureSuccessStatusCode();
+
+                        dynamic result = JsonConvert.DeserializeObject(responseString);
+                        string completion = result.candidates[0].content.parts[0].text;
+
+                        if (!string.IsNullOrEmpty(completion))
+                        {
+                            ShowGhostText(completion);
                         }
-                    };
-                    var requestUrl = DirectApiBaseUrl.TrimEnd('/') + "/chat/completions";
-                    var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
-                    request.Headers.Add("Authorization", $"Bearer {DirectApiKey}");
-                    request.Content = new StringContent(JsonConvert.SerializeObject(openAiPayload), Encoding.UTF8, "application/json");
-
-                    var response = await _httpClient.SendAsync(request);
-                    var responseString = await response.Content.ReadAsStringAsync();
-                    response.EnsureSuccessStatusCode();
-
-                    dynamic result = JsonConvert.DeserializeObject(responseString);
-                    string completion = result.choices[0].message.content;
-
-                    if (!string.IsNullOrEmpty(completion))
+                    }
+                    else
                     {
-                        ShowGhostText(completion);
+                        // Standard OpenAI API logic
+                        var openAiPayload = new
+                        {
+                            model = DirectApiModel,
+                            messages = new[]
+                            {
+                                new { role = "system", content = "你是一个代码补全助手，只输出补全的代码，不要任何解释" },
+                                new { role = "user", content = this.Text }
+                            }
+                        };
+                        var requestUrl = DirectApiBaseUrl.TrimEnd('/') + "/chat/completions";
+                        var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
+                        request.Headers.Add("Authorization", $"Bearer {DirectApiKey}");
+                        request.Content = new StringContent(JsonConvert.SerializeObject(openAiPayload), Encoding.UTF8, "application/json");
+
+                        var response = await _httpClient.SendAsync(request);
+                        var responseString = await response.Content.ReadAsStringAsync();
+                        response.EnsureSuccessStatusCode();
+
+                        dynamic result = JsonConvert.DeserializeObject(responseString);
+                        string completion = result.choices[0].message.content;
+
+                        if (!string.IsNullOrEmpty(completion))
+                        {
+                            ShowGhostText(completion);
+                        }
                     }
                 }
             }

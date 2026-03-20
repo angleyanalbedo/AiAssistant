@@ -14,8 +14,18 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpClient();
 
-// 统一注入 StandardAiEngine
-builder.Services.AddScoped<IAiEngine, StandardAiEngine>();
+// 根据配置动态注入 AI 引擎
+var activeProvider = builder.Configuration["AiProviders:Active"];
+if (activeProvider == "ClaudeCLI")
+{
+    Console.WriteLine("Active provider is ClaudeCLI. Using ClaudeCodeProcessEngine.");
+    builder.Services.AddScoped<IAiEngine, ClaudeCodeProcessEngine>();
+}
+else
+{
+    Console.WriteLine($"Active provider is '{activeProvider}'. Using StandardAiEngine.");
+    builder.Services.AddScoped<IAiEngine, StandardAiEngine>();
+}
 
 var app = builder.Build();
 

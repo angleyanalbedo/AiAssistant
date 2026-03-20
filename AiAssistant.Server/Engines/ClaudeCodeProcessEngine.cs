@@ -1,6 +1,8 @@
 using AiAssistant.Server.Interfaces;
 using AiAssistant.Server.Utils;
+using System;
 using System.Diagnostics;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace AiAssistant.Server.Engines
@@ -9,29 +11,39 @@ namespace AiAssistant.Server.Engines
     {
         public async Task<string> ChatAsync(string message)
         {
-            var processStartInfo = new ProcessStartInfo
+            try
             {
-                FileName = "claude", // 确保 'claude' 在系统的 PATH 环境变量中
-                // 或者使用: FileName = "cmd.exe", Arguments = "/c claude",
-                RedirectStandardOutput = true,
-                RedirectStandardInput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
+                var process = new Process();
+                process.StartInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/c claude \"{message.Replace("\"", "\\\"")}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    StandardOutputEncoding = Encoding.UTF8,
+                    StandardErrorEncoding = Encoding.UTF8
+                };
 
-            using var process = new Process { StartInfo = processStartInfo };
-            if (!process.Start())
-            {
-                return "错误: 无法启动 claude 进程。";
+                process.Start();
+
+                var outputTask = process.StandardOutput.ReadToEndAsync();
+                var errorTask = process.StandardError.ReadToEndAsync();
+
+                await process.WaitForExitAsync();
+
+                var output = await outputTask;
+                var error = await errorTask;
+
+                var result = string.IsNullOrEmpty(output) ? error : output;
+
+                return AnsiStripper.Clean(result);
             }
-
-            await process.StandardInput.WriteLineAsync(message);
-            process.StandardInput.Close(); // 表示输入结束
-
-            string result = await process.StandardOutput.ReadToEndAsync();
-            await process.WaitForExitAsync();
-
-            return AnsiStripper.Clean(result);
+            catch (Exception ex)
+            {
+                return $"启动 'claude' 进程失败。请确保 claude CLI 已正确安装并位于系统的 PATH 中。错误: {ex.Message}";
+            }
         }
     }
 }

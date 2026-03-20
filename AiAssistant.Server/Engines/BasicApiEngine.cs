@@ -13,7 +13,7 @@ namespace AiAssistant.Server.Engines
 {
     public class BasicApiEngine : IAiEngine
     {
-        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly HttpClient _httpClient;
         private readonly string _apiUrl;
         private readonly string _apiKey;
         private readonly string _model;
@@ -24,9 +24,9 @@ namespace AiAssistant.Server.Engines
         private record OpenAiChoice([property: JsonPropertyName("message")] OpenAiMessage Message);
         private record OpenAiResponse([property: JsonPropertyName("choices")] List<OpenAiChoice> Choices);
 
-        public BasicApiEngine(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+        public BasicApiEngine(HttpClient httpClient, IConfiguration configuration)
         {
-            _httpClientFactory = httpClientFactory;
+            _httpClient = httpClient;
             _apiUrl = configuration["OpenAI:ApiUrl"];
             _apiKey = configuration["OpenAI:ApiKey"];
             _model = configuration["OpenAI:Model"] ?? "gpt-3.5-turbo"; // 默认模型
@@ -45,8 +45,7 @@ namespace AiAssistant.Server.Engines
                 return "错误: OpenAI API URL 或 ApiKey 未在配置文件中设置。";
             }
 
-            var client = _httpClientFactory.CreateClient();
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
 
             var requestPayload = new OpenAiRequest(
                 _model,
@@ -55,7 +54,7 @@ namespace AiAssistant.Server.Engines
 
             try
             {
-                var response = await client.PostAsJsonAsync(_apiUrl, requestPayload);
+                var response = await _httpClient.PostAsJsonAsync(_apiUrl, requestPayload);
 
                 if (!response.IsSuccessStatusCode)
                 {

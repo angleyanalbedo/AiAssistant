@@ -2,21 +2,7 @@
 <html>
 <head>
     <title>AI Assistant</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; background-color: #f0f2f5; }
-        #chatLog { flex-grow: 1; overflow-y: auto; padding: 20px; }
-        .message { display: flex; margin-bottom: 15px; }
-        .message-content { padding: 10px 15px; border-radius: 18px; max-width: 75%; line-height: 1.4; }
-        .user-message { justify-content: flex-end; }
-        .user-message .message-content { background-color: #0084ff; color: white; }
-        .ai-message { justify-content: flex-start; }
-        .ai-message .message-content { background-color: #e4e6eb; color: #050505; white-space: pre-wrap; }
-        #chatForm { display: flex; padding: 10px; border-top: 1px solid #ddd; background-color: #fff; }
-        #userInput { flex-grow: 1; border: 1px solid #ccc; border-radius: 18px; padding: 10px 15px; font-size: 16px; outline: none; resize: none; }
-        #userInput:focus { border-color: #0084ff; }
-        button { background-color: #0084ff; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; margin-left: 10px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        button:disabled { background-color: #a0c8ff; cursor: not-allowed; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="chatLog"></div>
@@ -25,63 +11,6 @@
         <button type="submit">↑</button>
     </form>
 
-    <script>
-        const chatForm = document.getElementById('chatForm');
-        const userInput = document.getElementById('userInput');
-        const chatLog = document.getElementById('chatLog');
-        const submitButton = chatForm.querySelector('button[type="submit"]');
-
-        chatForm.addEventListener('submit', function (e) {
-            e.preventDefault();
-            sendMessage();
-        });
-
-        async function sendMessage() {
-            const messageText = userInput.value.trim();
-            if (!messageText) return;
-
-            appendMessage(messageText, 'user');
-            userInput.value = '';
-            submitButton.disabled = true;
-
-            const thinkingMessage = appendMessage('思考中...', 'ai');
-
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: messageText }),
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP error! status: ${response.status}. ${errorText}`);
-                }
-
-                const data = await response.json();
-                thinkingMessage.querySelector('.message-content').textContent = data.reply;
-            } catch (error) {
-                thinkingMessage.querySelector('.message-content').textContent = `Error: ${error.message}`;
-            } finally {
-                submitButton.disabled = false;
-                userInput.focus();
-                chatLog.scrollTop = chatLog.scrollHeight;
-            }
-        }
-
-        function appendMessage(text, sender) {
-            const messageWrapper = document.createElement('div');
-            messageWrapper.classList.add('message', `${sender}-message`);
-            
-            const messageContent = document.createElement('div');
-            messageContent.classList.add('message-content');
-            messageContent.textContent = text;
-            
-            messageWrapper.appendChild(messageContent);
-            chatLog.appendChild(messageWrapper);
-            chatLog.scrollTop = chatLog.scrollHeight;
-            return messageWrapper;
-        }
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>

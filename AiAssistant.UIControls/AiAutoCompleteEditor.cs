@@ -44,12 +44,12 @@ namespace AiAssistant.UIControls
             this.Styles[Style.Default].ForeColor = Color.Black;
             this.ClearAll();
 
-            this.Styles[Style.CSharp.Default].ForeColor = Color.Black;
-            this.Styles[Style.CSharp.Keyword].ForeColor = Color.Blue;
-            this.Styles[Style.CSharp.String].ForeColor = Color.FromArgb(163, 21, 21);
-            this.Styles[Style.CSharp.Comment].ForeColor = Color.Green;
-            this.Styles[Style.CSharp.CommentLine].ForeColor = Color.Green;
-            this.Styles[Style.CSharp.Number].ForeColor = Color.DarkMagenta;
+            this.Styles[Style.Cpp.Default].ForeColor = Color.Black;
+            this.Styles[Style.Cpp.Word].ForeColor = Color.Blue;
+            this.Styles[Style.Cpp.String].ForeColor = Color.FromArgb(163, 21, 21);
+            this.Styles[Style.Cpp.Comment].ForeColor = Color.Green;
+            this.Styles[Style.Cpp.CommentLine].ForeColor = Color.Green;
+            this.Styles[Style.Cpp.Number].ForeColor = Color.DarkMagenta;
         }
 
         private void AiAutoCompleteEditor_TextChanged(object sender, EventArgs e)
@@ -158,7 +158,7 @@ namespace AiAssistant.UIControls
         {
             if (e.KeyCode == Keys.Tab && this.SelectedText.Length > 0)
             {
-                this.GotoPosition(this.Selection.End);
+                this.GotoPosition(this.SelectionEnd);
                 e.SuppressKeyPress = true;
             }
         }

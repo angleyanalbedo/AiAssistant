@@ -14,7 +14,7 @@ namespace AiAssistant.Server.Engines
     public class BasicApiEngine : IAiEngine
     {
         private readonly HttpClient _httpClient;
-        private readonly string _apiUrl;
+        private readonly string _baseUrl;
         private readonly string _apiKey;
         private readonly string _model;
 
@@ -27,11 +27,11 @@ namespace AiAssistant.Server.Engines
         public BasicApiEngine(HttpClient httpClient, IConfiguration configuration)
         {
             _httpClient = httpClient;
-            _apiUrl = configuration["OpenAiConfig:ApiUrl"];
+            _baseUrl = configuration["OpenAiConfig:BaseUrl"];
             _apiKey = configuration["OpenAiConfig:ApiKey"];
             _model = configuration["OpenAiConfig:Model"] ?? "gpt-3.5-turbo"; // 默认模型
 
-            if (string.IsNullOrEmpty(_apiUrl) || string.IsNullOrEmpty(_apiKey))
+            if (string.IsNullOrEmpty(_baseUrl) || string.IsNullOrEmpty(_apiKey))
             {
                 // 如果未配置，不抛出异常，而是优雅地降级或记录警告
                 // 这里为了演示，我们返回一个提示信息
@@ -40,9 +40,9 @@ namespace AiAssistant.Server.Engines
 
         public async Task<string> ChatAsync(string message)
         {
-            if (string.IsNullOrEmpty(_apiUrl) || string.IsNullOrEmpty(_apiKey) || _apiKey == "YOUR_API_KEY")
+            if (string.IsNullOrEmpty(_baseUrl) || string.IsNullOrEmpty(_apiKey) || _apiKey == "YOUR_API_KEY")
             {
-                return "错误: OpenAI API URL 或 ApiKey 未在配置文件中正确设置。请检查 appsettings.json 中的 OpenAiConfig 节点，并确保 ApiKey 已被替换。";
+                return "错误: OpenAI API BaseUrl 或 ApiKey 未在配置文件中正确设置。请检查 appsettings.json 中的 OpenAiConfig 节点，并确保 ApiKey 已被替换。";
             }
 
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
@@ -54,7 +54,7 @@ namespace AiAssistant.Server.Engines
 
             try
             {
-                var response = await _httpClient.PostAsJsonAsync(_apiUrl, requestPayload);
+                var response = await _httpClient.PostAsJsonAsync(_baseUrl, requestPayload);
 
                 if (!response.IsSuccessStatusCode)
                 {

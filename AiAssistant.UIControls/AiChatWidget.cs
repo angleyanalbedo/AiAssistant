@@ -40,12 +40,12 @@ namespace AiAssistant.UIControls
             {
                 Dock = DockStyle.Fill,
             };
-            _userInput.KeyDown += (sender, e) =>
+            _userInput.KeyDown += async (sender, e) =>
             {
                 if (e.KeyCode == Keys.Enter && !e.Shift)
                 {
                     e.SuppressKeyPress = true;
-                    SendMessageAsync();
+                    await SendMessageAsync();
                 }
             };
 
@@ -55,7 +55,7 @@ namespace AiAssistant.UIControls
                 Text = "Send",
                 Width = 75
             };
-            _sendButton.Click += (sender, e) => SendMessageAsync();
+            _sendButton.Click += async (sender, e) => await SendMessageAsync();
 
             var inputPanel = new Panel
             {

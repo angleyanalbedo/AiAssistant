@@ -31,7 +31,7 @@ namespace AiAssistant.Server.Engines
             string result = await process.StandardOutput.ReadToEndAsync();
             await process.WaitForExitAsync();
 
-            return AnsiCleaner.Clean(result);
+            return AnsiStripper.Clean(result);
         }
     }
 }

@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace AiAssistant.Server.Utils
 {
-    public static class AnsiCleaner
+    public static class AnsiStripper
     {
         public static string Clean(string input)
         {

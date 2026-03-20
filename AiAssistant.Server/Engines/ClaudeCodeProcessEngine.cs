@@ -1,6 +1,6 @@
 using AiAssistant.Server.Interfaces;
+using AiAssistant.Server.Utils;
 using System.Diagnostics;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace AiAssistant.Server.Engines
@@ -31,17 +31,7 @@ namespace AiAssistant.Server.Engines
             string result = await process.StandardOutput.ReadToEndAsync();
             await process.WaitForExitAsync();
 
-            return CleanAnsiCodes(result);
-        }
-
-        private static string CleanAnsiCodes(string input)
-        {
-            if (string.IsNullOrEmpty(input))
-            {
-                return input;
-            }
-            // This regex pattern matches ANSI escape codes.
-            return Regex.Replace(input, @"\x1B\[[0-?]*[ -/]*[@-~]", "");
+            return AnsiCleaner.Clean(result);
         }
     }
 }

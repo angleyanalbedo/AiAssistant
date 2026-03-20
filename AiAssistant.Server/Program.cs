@@ -93,6 +93,31 @@ static bool IsClaudeCliAvailable()
         }
     }
 
-    // 在 Linux/macOS 上可以添加类似的 'which' 命令检测
+    // 在 Linux/macOS 上使用 'which' 命令检测 'claude' 是否存在于 PATH
+    if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+    {
+        try
+        {
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "which",
+                    Arguments = "claude",
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                }
+            };
+            process.Start();
+            process.WaitForExit();
+            return process.ExitCode == 0;
+        }
+        catch
+        {
+            return false; // 'which' 命令可能不存在
+        }
+    }
+
     return false;
 }

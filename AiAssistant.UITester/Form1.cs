@@ -17,15 +17,20 @@ namespace AiAssistant.UITester
                 Dock = DockStyle.Right,
                 Width = 300,
                 // To test DirectOpenAI mode, uncomment and fill in the following lines:
-                // ConnectionMode = AiConnectionMode.DirectOpenAI,
-                // DirectApiBaseUrl = "https://api.openai.com/v1",
-                // DirectApiKey = "sk-..."
+                ConnectionMode = AiConnectionMode.DirectOpenAI,
+                DirectApiBaseUrl = "https://openrouter.ai/api/v1",
+                DirectApiKey = "[REDACTED OPENROUTER API KEY]",
+                DirectApiModel = "stepfun/step-3.5-flash:free"
             };
 
             var autoCompleteTextBox = new AiAutoCompleteTextBox
             {
                 Dock = DockStyle.Fill,
-                Font = new Font("Consolas", 10)
+                Font = new Font("Consolas", 10),
+                ConnectionMode = AiConnectionMode.DirectOpenAI,
+                DirectApiBaseUrl = "https://openrouter.ai/api/v1",
+                DirectApiKey = "[REDACTED OPENROUTER API KEY]",
+                DirectApiModel = "stepfun/step-3.5-flash:free"
             };
 
             this.Controls.Add(autoCompleteTextBox);

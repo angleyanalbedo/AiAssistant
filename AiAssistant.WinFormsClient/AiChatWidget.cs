@@ -10,9 +10,9 @@ namespace AiAssistant.WinFormsClient
 {
     public class AiChatWidget : UserControl
     {
-        private readonly RichTextBox _chatHistoryBox;
-        private readonly TextBox _inputTextBox;
-        private readonly Button _sendButton;
+        private RichTextBox _chatHistoryBox;
+        private TextBox _inputTextBox;
+        private Button _sendButton;
         private readonly HttpClient _httpClient;
 
         public string ServerApiUrl { get; set; } = "http://localhost:5000/api/chat";

@@ -1,5 +1,7 @@
 using Newtonsoft.Json;
+using ScintillaNET;
 using System;
+using System.Drawing;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -7,12 +9,13 @@ using System.Windows.Forms;
 
 namespace AiAssistant.UIControls
 {
-    public class AiAutoCompleteTextBox : TextBox
+    public class AiAutoCompleteTextBox : Scintilla
     {
         private Timer _debounceTimer;
         private static readonly HttpClient _httpClient = new HttpClient();
         private string _ghostText = string.Empty;
-        private bool _isAcceptingGhostText = false;
+        private int _ghostTextPosition = -1;
+        private const int GHOST_TEXT_STYLE = Style.Default + 1; // Use a style not used by lexers
 
         public string ServerApiUrl { get; set; } = "http://localhost:5000/api/completion";
         public AiConnectionMode ConnectionMode { get; set; } = AiConnectionMode.LocalServer;
@@ -22,28 +25,57 @@ namespace AiAssistant.UIControls
 
         public AiAutoCompleteTextBox()
         {
-            this.Multiline = true;
+            // Basic Scintilla setup
+            this.WrapMode = WrapMode.Word;
+            this.Lexer = Lexer.Null;
 
+            // Styling
+            this.Styles[Style.Default].Font = "Consolas";
+            this.Styles[Style.Default].Size = 10;
+            this.CaretForeColor = Color.Black;
+            this.ClearAll();
+
+            // Line numbers
+            this.Margins[0].Width = 30;
+
+            // Ghost text style
+            this.Styles[GHOST_TEXT_STYLE].ForeColor = SystemColors.GrayText;
+            this.Styles[GHOST_TEXT_STYLE].Italic = true;
+
+            // Debounce timer
             _debounceTimer = new Timer();
             _debounceTimer.Interval = 500;
             _debounceTimer.Tick += OnDebounceTimerTick;
+
+            this.TextChanged += AiAutoCompleteTextBox_TextChanged;
+            this.KeyDown += AiAutoCompleteTextBox_KeyDown;
+            this.UpdateUI += AiAutoCompleteTextBox_UpdateUI;
         }
 
-        protected override void OnTextChanged(EventArgs e)
+        private void AiAutoCompleteTextBox_TextChanged(object sender, EventArgs e)
         {
-            base.OnTextChanged(e);
-
-            if (_isAcceptingGhostText) return;
-
-            if (!string.IsNullOrEmpty(_ghostText))
+            // Don't trigger for style changes or ghost text insertion
+            if (this.ModifiedBy.HasFlag(ModificationFlags.ChangeStyle) || !string.IsNullOrEmpty(_ghostText))
             {
-                _ghostText = string.Empty;
+                return;
             }
 
             _debounceTimer.Stop();
             if (!string.IsNullOrWhiteSpace(this.Text))
             {
                 _debounceTimer.Start();
+            }
+        }
+
+        private void AiAutoCompleteTextBox_UpdateUI(object sender, UpdateUIEventArgs e)
+        {
+            // If the user moves the caret or selects text, remove the ghost text
+            if ((e.Change & UpdateChange.Selection) != 0 && !string.IsNullOrEmpty(_ghostText))
+            {
+                if (this.SelectedText.Length > 0 || this.CurrentPosition < _ghostTextPosition || this.CurrentPosition > _ghostTextPosition + _ghostText.Length)
+                {
+                    RemoveGhostText();
+                }
             }
         }
 
@@ -55,7 +87,7 @@ namespace AiAssistant.UIControls
 
         private async Task TriggerCompletion()
         {
-            if (this.SelectionLength > 0 || string.IsNullOrWhiteSpace(this.Text) || this.SelectionStart < this.Text.Length) return;
+            if (this.SelectedText.Length > 0 || string.IsNullOrWhiteSpace(this.Text) || this.CurrentPosition < this.TextLength) return;
 
             try
             {
@@ -144,27 +176,48 @@ namespace AiAssistant.UIControls
                 return;
             }
 
+            RemoveGhostText(); // Clear any existing ghost text
+
             _ghostText = completion;
-            int start = this.TextLength;
-            this.AppendText(completion);
-            this.Select(start, completion.Length);
+            _ghostTextPosition = this.CurrentPosition;
+
+            this.InsertText(_ghostTextPosition, _ghostText);
+            this.StartStyling(_ghostTextPosition);
+            this.SetStyling(_ghostText.Length, GHOST_TEXT_STYLE);
         }
 
-        protected override void OnKeyDown(KeyEventArgs e)
+        private void RemoveGhostText()
         {
-            if (this.SelectionLength > 0 && !string.IsNullOrEmpty(_ghostText))
+            if (!string.IsNullOrEmpty(_ghostText))
+            {
+                this.DeleteRange(_ghostTextPosition, _ghostText.Length);
+                _ghostText = string.Empty;
+                _ghostTextPosition = -1;
+            }
+        }
+
+        private void AiAutoCompleteTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(_ghostText))
             {
                 if (e.KeyCode == Keys.Tab)
                 {
-                    e.SuppressKeyPress = true;
-                    _isAcceptingGhostText = true;
-                    this.SelectionStart = this.TextLength;
-                    this.SelectionLength = 0;
+                    // Accept ghost text
+                    this.StartStyling(_ghostTextPosition);
+                    this.SetStyling(_ghostText.Length, Style.Default);
+                    this.GotoPosition(_ghostTextPosition + _ghostText.Length);
+
                     _ghostText = string.Empty;
-                    _isAcceptingGhostText = false;
+                    _ghostTextPosition = -1;
+
+                    e.SuppressKeyPress = true;
+                }
+                else if (e.KeyCode != Keys.ShiftKey && e.KeyCode != Keys.ControlKey && e.KeyCode != Keys.Alt)
+                {
+                    // Any other key press removes ghost text
+                    RemoveGhostText();
                 }
             }
-            base.OnKeyDown(e);
         }
 
         protected override void Dispose(bool disposing)

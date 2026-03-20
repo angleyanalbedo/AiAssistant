@@ -10,7 +10,7 @@ namespace AiAssistant.UIControls
 {
     public class AiChatWidget : UserControl
     {
-        private RichTextBox _chatLog;
+        private RichTextBox _chatHistoryRichTextBox;
         private TextBox _userInput;
         private Button _sendButton;
         private static readonly HttpClient _httpClient = new HttpClient();
@@ -23,22 +23,26 @@ namespace AiAssistant.UIControls
 
         public AiChatWidget()
         {
+            this.Font = new Font("微软雅黑", 10F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(134)));
+            this.BackColor = Color.FromArgb(243, 243, 243);
             InitializeComponent();
         }
 
         private void InitializeComponent()
         {
-            _chatLog = new RichTextBox
+            _chatHistoryRichTextBox = new RichTextBox
             {
                 Dock = DockStyle.Fill,
                 ReadOnly = true,
-                BackColor = Color.White,
-                BorderStyle = BorderStyle.FixedSingle
+                BackColor = this.BackColor,
+                BorderStyle = BorderStyle.None
             };
 
             _userInput = new TextBox
             {
                 Dock = DockStyle.Fill,
+                Multiline = true,
+                BorderStyle = BorderStyle.None
             };
             _userInput.KeyDown += async (sender, e) =>
             {
@@ -53,21 +57,26 @@ namespace AiAssistant.UIControls
             {
                 Dock = DockStyle.Right,
                 Text = "Send",
-                Width = 75
+                Width = 75,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(0, 120, 215),
+                ForeColor = Color.White
             };
+            _sendButton.FlatAppearance.BorderSize = 0;
             _sendButton.Click += async (sender, e) => await SendMessageAsync();
 
             var inputPanel = new Panel
             {
                 Dock = DockStyle.Bottom,
-                Height = _userInput.Height + 10,
-                Padding = new Padding(0, 5, 0, 5)
+                Height = _userInput.Height + 20,
+                Padding = new Padding(5),
+                BackColor = Color.White
             };
 
             inputPanel.Controls.Add(_userInput);
             inputPanel.Controls.Add(_sendButton);
 
-            this.Controls.Add(_chatLog);
+            this.Controls.Add(_chatHistoryRichTextBox);
             this.Controls.Add(inputPanel);
         }
 
@@ -76,7 +85,7 @@ namespace AiAssistant.UIControls
             var message = _userInput.Text.Trim();
             if (string.IsNullOrEmpty(message)) return;
 
-            AppendMessage("You: ", message, Color.Blue);
+            AppendMessage("You: ", message, Color.DarkBlue);
             _userInput.Clear();
             _sendButton.Enabled = false;
 
@@ -90,7 +99,7 @@ namespace AiAssistant.UIControls
                     response.EnsureSuccessStatusCode();
                     var responseString = await response.Content.ReadAsStringAsync();
                     var chatResponse = JsonConvert.DeserializeObject<ChatResponse>(responseString);
-                    AppendMessage("AI: ", chatResponse.Reply, Color.Green);
+                    AppendMessage("AI: ", chatResponse.Reply, Color.Black);
                 }
                 else // DirectOpenAI
                 {
@@ -111,7 +120,7 @@ namespace AiAssistant.UIControls
 
                         dynamic result = JsonConvert.DeserializeObject(responseString);
                         string reply = result.candidates[0].content.parts[0].text;
-                        AppendMessage("AI: ", reply, Color.Green);
+                        AppendMessage("AI: ", reply, Color.Black);
                     }
                     else
                     {
@@ -132,7 +141,7 @@ namespace AiAssistant.UIControls
 
                         dynamic result = JsonConvert.DeserializeObject(responseString);
                         string reply = result.choices[0].message.content;
-                        AppendMessage("AI: ", reply, Color.Green);
+                        AppendMessage("AI: ", reply, Color.Black);
                     }
                 }
             }
@@ -148,16 +157,36 @@ namespace AiAssistant.UIControls
 
         private void AppendMessage(string prefix, string message, Color color)
         {
-            if (_chatLog.InvokeRequired)
+            if (_chatHistoryRichTextBox.InvokeRequired)
             {
-                _chatLog.Invoke(new Action(() => AppendMessage(prefix, message, color)));
+                _chatHistoryRichTextBox.Invoke(new Action(() => AppendMessage(prefix, message, color)));
                 return;
             }
-            _chatLog.SelectionStart = _chatLog.TextLength;
-            _chatLog.SelectionLength = 0;
-            _chatLog.SelectionColor = color;
-            _chatLog.AppendText(prefix + message + Environment.NewLine + Environment.NewLine);
-            _chatLog.ScrollToCaret();
+
+            _chatHistoryRichTextBox.AppendText(Environment.NewLine);
+            int selectionStart = _chatHistoryRichTextBox.TextLength;
+
+            // Set alignment
+            bool isUser = prefix.Contains("You");
+            _chatHistoryRichTextBox.SelectionAlignment = isUser ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+
+            // Append prefix (bold)
+            _chatHistoryRichTextBox.SelectionFont = new Font(this.Font, FontStyle.Bold);
+            _chatHistoryRichTextBox.SelectionColor = color;
+            _chatHistoryRichTextBox.AppendText(isUser ? "👨 你: " : "🤖 AI: ");
+
+            // Append message (regular)
+            _chatHistoryRichTextBox.SelectionFont = new Font(this.Font, FontStyle.Regular);
+            _chatHistoryRichTextBox.AppendText(message);
+
+            // Set background color for the bubble
+            _chatHistoryRichTextBox.Select(selectionStart, _chatHistoryRichTextBox.TextLength - selectionStart);
+            _chatHistoryRichTextBox.SelectionBackColor = isUser ? Color.FromArgb(190, 228, 255) : Color.White;
+            _chatHistoryRichTextBox.Select(_chatHistoryRichTextBox.TextLength, 0);
+            _chatHistoryRichTextBox.SelectionBackColor = _chatHistoryRichTextBox.BackColor; // Reset for next line
+
+            _chatHistoryRichTextBox.AppendText(Environment.NewLine + Environment.NewLine);
+            _chatHistoryRichTextBox.ScrollToCaret();
         }
 
         private class ChatResponse

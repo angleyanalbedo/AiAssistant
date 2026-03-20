@@ -43,7 +43,10 @@ namespace AiAssistant.Server.Engines
                 }
 
                 var client = new OpenAI.OpenAIClient(new System.ClientModel.ApiKeyCredential(apiKey), new OpenAI.OpenAIClientOptions { Endpoint = new Uri(baseUrl) });
-                var chatClient = client.AsChatClient(model);
+                // 先从 OpenAIClient 获取官方的 ChatClient
+                var officialChatClient = client.GetChatClient(model);
+                // 再将官方的 ChatClient 转换为统一的 IChatClient 标准接口
+                var chatClient = officialChatClient.AsChatClient();
 
                 var response = await chatClient.CompleteAsync(message);
 

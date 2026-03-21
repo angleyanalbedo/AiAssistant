@@ -29,20 +29,20 @@ namespace AiAssistant.UIControls
         {
             // Basic Scintilla setup
             this.WrapMode = WrapMode.Word;
-            this.Lexer = "null";
+            this.LexerName = "null";
 
             // Styling
-            this.StyleSetFont(Style.Default, "Consolas");
-            this.StyleSetSize(Style.Default, 10);
-            this.SetCaretForeColor(Color.Black);
+            this.Styles[Style.Default].Font = "Consolas";
+            this.Styles[Style.Default].Size = 10;
+            this.CaretForeColor = Color.Black;
             this.ClearAll();
 
             // Line numbers
             this.Margins[0].Width = 30;
 
             // Ghost text style
-            this.StyleSetForeColor(GHOST_TEXT_STYLE, SystemColors.GrayText);
-            this.StyleSetItalic(GHOST_TEXT_STYLE, true);
+            this.Styles[GHOST_TEXT_STYLE].ForeColor = SystemColors.GrayText;
+            this.Styles[GHOST_TEXT_STYLE].Italic = true;
 
             // Debounce timer
             _debounceTimer = new Timer();

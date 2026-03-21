@@ -303,7 +303,7 @@ namespace AiAssistant.UIControls
             if (_isGhostActive) return;
 
             // Trigger local variable completion
-            if (char.IsLetter(e.Char))
+            if (char.IsLetter((char)e.Char))
             {
                 var currentWord = this.GetWordFromPosition(this.CurrentPosition);
                 if (currentWord.Length > 1)

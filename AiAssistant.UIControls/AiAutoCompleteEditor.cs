@@ -12,8 +12,12 @@ namespace AiAssistant.UIControls
 {
     public class AiAutoCompleteEditor : Scintilla
     {
-        private Timer _debounceTimer;
         private static readonly HttpClient _httpClient = new HttpClient();
+        private System.Threading.CancellationTokenSource _aiCts;
+        private bool _isGhostActive = false;
+        private int _ghostStart = 0;
+        private int _ghostLength = 0;
+        private const int GhostStyleIndex = 50;
 
         public event EventHandler<AiActionRequestedEventArgs> OnAiActionRequested;
         public event EventHandler OnFocusChatRequested;
@@ -29,11 +33,8 @@ namespace AiAssistant.UIControls
         {
             InitEditorStyle();
 
-            _debounceTimer = new Timer();
-            _debounceTimer.Interval = 500;
-            _debounceTimer.Tick += OnDebounceTimerTick;
-
             this.TextChanged += AiAutoCompleteEditor_TextChanged;
+            this.CharAdded += AiAutoCompleteEditor_CharAdded;
             this.KeyDown += AiAutoCompleteEditor_KeyDown;
             SetupContextMenu();
         }
@@ -118,35 +119,76 @@ namespace AiAssistant.UIControls
             this.AutoCMaxWidth = 80;
             this.AutoCSeparator = '|';
             this.AutoCAutoHide = true;
+
+            // Ghost text style
+            this.Styles[GhostStyleIndex].ForeColor = Color.Gray;
+            this.Styles[GhostStyleIndex].Italic = true;
         }
 
-        private void AiAutoCompleteEditor_TextChanged(object sender, EventArgs e)
+        private async void AiAutoCompleteEditor_TextChanged(object sender, EventArgs e)
         {
-            _debounceTimer.Stop();
-            if (this.SelectedText.Length == 0)
+            // 1. 只要文档有任何变化，立即杀死上一秒的幽灵和网络请求
+            _aiCts?.Cancel();
+            if (_isGhostActive) ClearGhostSuggestion();
+
+            _aiCts = new System.Threading.CancellationTokenSource();
+            var token = _aiCts.Token;
+
+            // 2. 核心拦截：什么情况下【绝对不】触发 AI？
+            // - 原生下拉框正在显示
+            if (this.AutoCActive) return;
+
+            // - 光标不在行尾 (防止把代码从中间劈开)
+            int currentPos = this.CurrentPosition;
+            int lineIndex = this.LineFromPosition(currentPos);
+            int lineEndPos = this.Lines[lineIndex].EndPosition;
+            if (currentPos < lineEndPos) return;
+
+            // - 光标紧挨着字母 (说明用户正在拼写变量，等他拼完)
+            if (currentPos > 0)
             {
-                _debounceTimer.Start();
+                char prevChar = (char)this.GetCharAt(currentPos - 1);
+                if (char.IsLetterOrDigit(prevChar)) return;
             }
+
+            try
+            {
+                // 3. 智能防抖：等待 600 毫秒。如果这期间用户敲了键盘，token 会被 Cancel，直接 return。
+                await Task.Delay(600, token);
+                if (token.IsCancellationRequested) return;
+
+                // 4. 获取上下文并请求大模型
+                string context = this.GetTextRange(0, currentPos);
+                if (string.IsNullOrWhiteSpace(context)) return;
+
+                string aiResponse = await FetchAiSuggestionAsync(context, token);
+
+                if (token.IsCancellationRequested || string.IsNullOrWhiteSpace(aiResponse)) return;
+
+                // 5. 安全展示幽灵文本 (确保在 UI 线程)
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new Action(() => DisplayGhostSuggestion(aiResponse)));
+                }
+                else
+                {
+                    DisplayGhostSuggestion(aiResponse);
+                }
+            }
+            catch (TaskCanceledException) { }
+            catch (Exception) { /* Ignore other exceptions */ }
         }
 
-        private async void OnDebounceTimerTick(object sender, EventArgs e)
+        private async Task<string> FetchAiSuggestionAsync(string context, System.Threading.CancellationToken token)
         {
-            _debounceTimer.Stop();
-            await TriggerCompletion();
-        }
-
-        private async Task TriggerCompletion()
-        {
-            if (this.SelectedText.Length > 0 || string.IsNullOrWhiteSpace(this.Text)) return;
-
             try
             {
                 string completion = "";
                 if (ConnectionMode == AiConnectionMode.LocalServer)
                 {
-                    var requestPayload = new { text = this.Text };
+                    var requestPayload = new { text = context };
                     var content = new StringContent(JsonConvert.SerializeObject(requestPayload), Encoding.UTF8, "application/json");
-                    var response = await _httpClient.PostAsync(ServerApiUrl, content);
+                    var response = await _httpClient.PostAsync(ServerApiUrl, content, token);
                     response.EnsureSuccessStatusCode();
                     var responseString = await response.Content.ReadAsStringAsync();
                     var completionResponse = JsonConvert.DeserializeObject<CompletionResponse>(responseString);
@@ -163,7 +205,7 @@ namespace AiAssistant.UIControls
                         payload = new
                         {
                             systemInstruction = new { parts = new[] { new { text = this.SystemPrompt } } },
-                            contents = new[] { new { parts = new[] { new { text = this.Text } } } }
+                            contents = new[] { new { parts = new[] { new { text = context } } } }
                         };
                         requestUrl = $"{DirectApiBaseUrl.TrimEnd('/')}/models/{DirectApiModel}:generateContent?key={DirectApiKey}";
                         request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
@@ -176,7 +218,7 @@ namespace AiAssistant.UIControls
                             messages = new[]
                             {
                                 new { role = "system", content = this.SystemPrompt },
-                                new { role = "user", content = this.Text }
+                                new { role = "user", content = context }
                             }
                         };
                         requestUrl = DirectApiBaseUrl.TrimEnd('/') + "/chat/completions";
@@ -185,54 +227,131 @@ namespace AiAssistant.UIControls
                     }
 
                     request.Content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
-                    var response = await _httpClient.SendAsync(request);
-                    var responseString = await response.Content.ReadAsStringAsync();
-                    response.EnsureSuccessStatusCode();
+                    using (var response = await _httpClient.SendAsync(request, token))
+                    {
+                        var responseString = await response.Content.ReadAsStringAsync();
+                        response.EnsureSuccessStatusCode();
 
-                    dynamic result = JsonConvert.DeserializeObject(responseString);
-                    if (DirectApiBaseUrl.Contains("googleapis.com"))
-                    {
-                        completion = result.candidates[0].content.parts[0].text;
-                    }
-                    else
-                    {
-                        completion = result.choices[0].message.content;
+                        dynamic result = JsonConvert.DeserializeObject(responseString);
+                        if (DirectApiBaseUrl.Contains("googleapis.com"))
+                        {
+                            completion = result.candidates[0].content.parts[0].text;
+                        }
+                        else
+                        {
+                            completion = result.choices[0].message.content;
+                        }
                     }
                 }
-
-                if (!string.IsNullOrEmpty(completion))
-                {
-                    if (this.InvokeRequired)
-                    {
-                        this.Invoke(new Action(() => ShowAiAutoComplete(completion)));
-                    }
-                    else
-                    {
-                        ShowAiAutoComplete(completion);
-                    }
-                }
+                return completion;
             }
             catch (Exception)
             {
-                // Ignore completion errors
+                return null; // Ignore completion errors
             }
         }
 
-        private void ShowAiAutoComplete(string suggestion)
+        private void DisplayGhostSuggestion(string suggestion)
         {
-            if (string.IsNullOrWhiteSpace(suggestion)) return;
+            if (string.IsNullOrEmpty(suggestion)) return;
 
-            // 这里可以做一些简单的字符串处理，把 AI 的回复变成下拉框的 item
-            // 为了简单演示，我们直接把 AI 建议的一段短代码作为一个选项弹出
-            string safeSuggestion = suggestion.Replace("\n", "").Replace("\r", "").Trim();
+            if (_isGhostActive) ClearGhostSuggestion();
 
-            // 0 表示从当前光标位置开始替换
-            this.AutoCShow(0, safeSuggestion);
+            _ghostStart = this.CurrentPosition;
+            _ghostLength = suggestion.Length;
+
+            this.AutoCCancel();
+
+            this.InsertText(_ghostStart, suggestion);
+            this.SetSelection(_ghostStart, _ghostStart);
+
+            this.StartStyling(_ghostStart);
+            this.SetStyling(_ghostLength, GhostStyleIndex);
+
+            _isGhostActive = true;
+        }
+
+        private void ClearGhostSuggestion()
+        {
+            if (!_isGhostActive) return;
+
+            this.DeleteRange(_ghostStart, _ghostLength);
+
+            _isGhostActive = false;
+            _ghostStart = 0;
+            _ghostLength = 0;
+        }
+
+        private void AcceptGhostSuggestion()
+        {
+            if (!_isGhostActive) return;
+
+            this.StartStyling(_ghostStart);
+            this.SetStyling(_ghostLength, Style.Default);
+
+            this.SetSelection(_ghostStart + _ghostLength, _ghostStart + _ghostLength);
+
+            _isGhostActive = false;
+            _ghostStart = 0;
+            _ghostLength = 0;
+
+            this.Invalidate();
+        }
+
+        private void AiAutoCompleteEditor_CharAdded(object sender, CharAddedEventArgs e)
+        {
+            if (_isGhostActive) return;
+
+            // Trigger local variable completion
+            if (char.IsLetter(e.Char))
+            {
+                var currentWord = this.GetWordFromPosition(this.CurrentPosition);
+                if (currentWord.Length > 1)
+                {
+                    var words = new System.Collections.Generic.HashSet<string>();
+                    var text = this.Text;
+                    var matches = System.Text.RegularExpressions.Regex.Matches(text, @"\b\w+\b");
+                    foreach (System.Text.RegularExpressions.Match match in matches)
+                    {
+                        words.Add(match.Value);
+                    }
+
+                    var wordList = string.Join(this.AutoCSeparator.ToString(), words);
+                    this.AutoCShow(this.CurrentPosition - this.WordStartPosition(this.CurrentPosition, true), wordList);
+                }
+            }
         }
 
         private void AiAutoCompleteEditor_KeyDown(object sender, KeyEventArgs e)
         {
-            // 保留焦点切换逻辑
+            if (_isGhostActive)
+            {
+                if (e.KeyCode == Keys.Tab && e.Modifiers == Keys.None)
+                {
+                    AcceptGhostSuggestion();
+                    e.SuppressKeyPress = true;
+                    e.Handled = true;
+                    return;
+                }
+
+                // Any other key press cancels the suggestion
+                switch (e.KeyCode)
+                {
+                    case Keys.ControlKey:
+                    case Keys.ShiftKey:
+                    case Keys.Menu: // Alt
+                    case Keys.LWin:
+                    case Keys.RWin:
+                        // Do nothing if it's just a modifier key
+                        break;
+                    default:
+                        ClearGhostSuggestion();
+                        // Let the key press be handled normally after clearing
+                        break;
+                }
+            }
+
+            // Keep focus switching logic
             if (e.Control && e.KeyCode == Keys.J)
             {
                 e.SuppressKeyPress = true;
@@ -254,10 +373,10 @@ namespace AiAssistant.UIControls
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing && (_debounceTimer != null))
+            if (disposing)
             {
-                _debounceTimer.Dispose();
-                _debounceTimer = null;
+                _aiCts?.Cancel();
+                _aiCts?.Dispose();
             }
             base.Dispose(disposing);
         }

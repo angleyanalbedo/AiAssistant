@@ -11,6 +11,8 @@ namespace AiAssistant.UIControls
 {
     public class AiChatHtmlWidget : UserControl
     {
+        public event EventHandler<InsertCodeEventArgs> OnInsertCodeRequested;
+
         private WebBrowser _webBrowser;
         private TextBox _inputTextBox;
         private Button _sendButton;
@@ -273,6 +275,19 @@ namespace AiAssistant.UIControls
             {
                 _webBrowser.Document.Window.ScrollTo(0, container.ScrollRectangle.Height);
             }
+        }
+
+        public void SendExternalMessage(string message)
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new Action(() => SendExternalMessage(message)));
+                return;
+            }
+
+            _inputTextBox.Text = message;
+            _inputTextBox.ForeColor = Color.Black;
+            _sendButton.PerformClick();
         }
 
         protected override void Dispose(bool disposing)

@@ -13,6 +13,8 @@ namespace AiAssistant.UIControls
 {
     public class AiChatWebViewWidget : UserControl
     {
+        public event EventHandler<InsertCodeEventArgs> OnInsertCodeRequested;
+
         private WebView2 _chatWebView;
         private TextBox _inputTextBox;
         private Button _sendButton;
@@ -41,7 +43,11 @@ namespace AiAssistant.UIControls
         .msg { max-width: 80%; padding: 10px 15px; border-radius: 18px; line-height: 1.5; word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .msg-user { align-self: flex-end; background-color: #DCF8C6; color: #000; }
         .msg-ai { align-self: flex-start; background-color: #FFF; color: #000; border: 1px solid #EAEAEA; }
-        pre { background-color: #F4F4F4; border: 1px solid #DDD; border-radius: 5px; padding: 10px; font-family: Consolas, 'Courier New', monospace; white-space: pre-wrap; word-wrap: break-word; }
+        pre { position: relative; background-color: #F4F4F4; border: 1px solid #DDD; border-radius: 5px; padding: 10px; font-family: Consolas, 'Courier New', monospace; white-space: pre-wrap; word-wrap: break-word; }
+        .code-actions { position: absolute; top: 5px; right: 5px; display: none; background-color: #F4F4F4; padding: 2px;}
+        pre:hover .code-actions { display: block; }
+        .code-actions button { background-color: #888; color: white; border: none; border-radius: 3px; padding: 2px 6px; cursor: pointer; font-size: 12px; margin-left: 4px; }
+        .code-actions button:hover { background-color: #666; }
         code { font-family: Consolas, 'Courier New', monospace; }
         p { margin: 0 0 10px 0; }
         p:last-child { margin-bottom: 0; }
@@ -51,12 +57,48 @@ namespace AiAssistant.UIControls
         hr { height: 1px; border: none; background-color: #E5E7EB; margin: 16px 0; }
     </style>
     <script>
+        function addCodeActionButtons(bubble) {
+            const pres = bubble.querySelectorAll('pre');
+            pres.forEach(pre => {
+                const code = pre.querySelector('code');
+                if (!code) return;
+
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'code-actions';
+
+                const insertButton = document.createElement('button');
+                insertButton.innerText = '插入';
+                insertButton.onclick = () => {
+                    window.chrome.webview.postMessage(JSON.stringify({
+                        type: 'insertCode',
+                        replace: false,
+                        code: code.innerText
+                    }));
+                };
+                
+                const replaceButton = document.createElement('button');
+                replaceButton.innerText = '替换';
+                replaceButton.onclick = () => {
+                    window.chrome.webview.postMessage(JSON.stringify({
+                        type: 'insertCode',
+                        replace: true,
+                        code: code.innerText
+                    }));
+                };
+
+                actionsDiv.appendChild(insertButton);
+                actionsDiv.appendChild(replaceButton);
+                pre.appendChild(actionsDiv);
+            });
+        }
+
         function appendBubble(role, htmlContent, id) {
             const container = document.getElementById('chat-container');
             const bubble = document.createElement('div');
             bubble.id = id;
             bubble.className = `msg msg-${role}`;
             bubble.innerHTML = htmlContent;
+            addCodeActionButtons(bubble);
             container.appendChild(bubble);
             window.scrollTo(0, document.body.scrollHeight);
         }
@@ -64,6 +106,7 @@ namespace AiAssistant.UIControls
             const bubble = document.getElementById(id);
             if (bubble) {
                 bubble.innerHTML = htmlContent;
+                addCodeActionButtons(bubble);
                 window.scrollTo(0, document.body.scrollHeight);
             }
         }
@@ -145,6 +188,7 @@ namespace AiAssistant.UIControls
                 _isWebViewReady = true;
                 _chatWebView.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false;
                 _chatWebView.CoreWebView2.Settings.IsScriptEnabled = true;
+                _chatWebView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
                 _chatWebView.NavigateToString(_htmlTemplate);
                 
                 // It's better to append the welcome message after the navigation is complete.
@@ -154,6 +198,26 @@ namespace AiAssistant.UIControls
                         AppendMessage("ai", "你好！我能为你做些什么？");
                     }
                 };
+            }
+        }
+
+        private void OnWebMessageReceived(object sender, Microsoft.Web.WebView2.Core.CoreWebMessageReceivedEventArgs e)
+        {
+            try
+            {
+                var message = JsonConvert.DeserializeObject<dynamic>(e.WebMessageAsJson);
+                string type = message.type;
+
+                if (type == "insertCode")
+                {
+                    string code = message.code;
+                    bool replace = message.replace;
+                    OnInsertCodeRequested?.Invoke(this, new InsertCodeEventArgs { Code = code, ReplaceSelection = replace });
+                }
+            }
+            catch
+            {
+                // Ignore malformed messages
             }
         }
 
@@ -272,6 +336,19 @@ namespace AiAssistant.UIControls
             {
                 _chatWebView.ExecuteScriptAsync(script);
             }
+        }
+
+        public void SendExternalMessage(string message)
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new Action(() => SendExternalMessage(message)));
+                return;
+            }
+
+            _inputTextBox.Text = message;
+            _inputTextBox.ForeColor = Color.Black;
+            _sendButton.PerformClick();
         }
 
         protected override void Dispose(bool disposing)

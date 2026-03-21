@@ -1,3 +1,4 @@
+using AiAssistant.UIControls.Utils;
 using Newtonsoft.Json;
 using ScintillaNET;
 using System;
@@ -13,6 +14,8 @@ namespace AiAssistant.UIControls
     {
         private Timer _debounceTimer;
         private static readonly HttpClient _httpClient = new HttpClient();
+
+        public event EventHandler<AiActionRequestedEventArgs> OnAiActionRequested;
 
         public AiConnectionMode ConnectionMode { get; set; } = AiConnectionMode.LocalServer;
         public string ServerApiUrl { get; set; } = "http://localhost:5000/api/completion";
@@ -31,6 +34,34 @@ namespace AiAssistant.UIControls
 
             this.TextChanged += AiAutoCompleteEditor_TextChanged;
             this.KeyDown += AiAutoCompleteEditor_KeyDown;
+            SetupContextMenu();
+        }
+
+        private void SetupContextMenu()
+        {
+            var contextMenu = new ContextMenuStrip();
+            var itemExplain = new ToolStripMenuItem("解释此段代码");
+            var itemFindBugs = new ToolStripMenuItem("寻找 Bug");
+            var itemAddComments = new ToolStripMenuItem("添加注释");
+
+            itemExplain.Click += (sender, e) => HandleContextMenuAction("请解释以下代码");
+            itemFindBugs.Click += (sender, e) => HandleContextMenuAction("请检查以下代码是否存在 Bug");
+            itemAddComments.Click += (sender, e) => HandleContextMenuAction("请为以下代码添加注释");
+
+            contextMenu.Items.Add(itemExplain);
+            contextMenu.Items.Add(itemFindBugs);
+            contextMenu.Items.Add(itemAddComments);
+
+            this.ContextMenuStrip = contextMenu;
+        }
+
+        private void HandleContextMenuAction(string actionPrefix)
+        {
+            if (!string.IsNullOrEmpty(this.SelectedText))
+            {
+                string prompt = $"{actionPrefix}:\n```csharp\n{this.SelectedText}\n```";
+                OnAiActionRequested?.Invoke(this, new AiActionRequestedEventArgs { Prompt = prompt });
+            }
         }
 
         private void InitializeEditorStyle()
@@ -166,6 +197,16 @@ namespace AiAssistant.UIControls
                 this.GotoPosition(this.SelectionEnd);
                 e.SuppressKeyPress = true;
             }
+        }
+
+        public void InsertTextAtCursor(string text)
+        {
+            this.InsertText(this.CurrentPosition, text);
+        }
+
+        public void ReplaceSelectedText(string text)
+        {
+            this.ReplaceSelection(text);
         }
 
         protected override void Dispose(bool disposing)

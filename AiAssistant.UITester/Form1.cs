@@ -81,6 +81,25 @@ namespace AiAssistant.UITester
                 autoCompleteEditor.Enabled = false;
             }
 
+            // Bind events
+            autoCompleteEditor.OnAiActionRequested += (sender, args) => webViewChatWidget.SendExternalMessage(args.Prompt);
+
+            webViewChatWidget.OnInsertCodeRequested += (sender, args) =>
+            {
+                if (args.ReplaceSelection)
+                    autoCompleteEditor.ReplaceSelectedText(args.Code);
+                else
+                    autoCompleteEditor.InsertTextAtCursor(args.Code);
+            };
+
+            ieChatWidget.OnInsertCodeRequested += (sender, args) =>
+            {
+                if (args.ReplaceSelection)
+                    autoCompleteEditor.ReplaceSelectedText(args.Code);
+                else
+                    autoCompleteEditor.InsertTextAtCursor(args.Code);
+            };
+
             this.Controls.Add(autoCompleteEditor);
             this.Controls.Add(splitContainer);
         }

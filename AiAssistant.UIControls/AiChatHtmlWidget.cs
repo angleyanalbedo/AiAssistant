@@ -1,9 +1,4 @@
 using AiAssistant.UIControls.Utils;
-using Newtonsoft.Json;
-using System;
-using System.Drawing;
-using System.Net.Http;
-using AiAssistant.UIControls.Utils;
 using FontAwesome.Sharp;
 using Newtonsoft.Json;
 using System;

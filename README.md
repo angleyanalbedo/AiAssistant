@@ -28,6 +28,7 @@
 
 具备 Markdown 渲染与流式输出能力的聊天窗口，支持自动降级。
 
+  * **Ghost Text (幽灵文本)**：手动按下 `Alt + \` 唤醒 AI，建议以灰色斜体预览，`Tab` 键一键采纳。
   * **自适应双引擎**：优先使用 **WebView2**，在无环境的旧机器上自动降级至 **IE11 WebBrowser**，保证 100% 可用。
   * **Material Design 风格**：扁平化设计，集成 FontAwesome 图标，彻底摆脱 WinForms 的陈旧感。
   * **多轮对话记忆**：内置 Context 队列，支持联系上下文进行连续追问。

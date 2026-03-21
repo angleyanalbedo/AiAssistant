@@ -25,8 +25,10 @@ namespace AiAssistant.UIControls
         private const string PlaceholderText = "输入测绘问题...";
 
         private static readonly HttpClient _httpClient = new HttpClient();
+        private System.Collections.Generic.List<object> _messageHistory = new System.Collections.Generic.List<object>();
 
         // API Properties
+        public string SystemPrompt { get; set; } = "你是一个专业的 CASS 数据处理与测绘工程AI助手。请给出准确、专业的回答。";
         public AiConnectionMode ConnectionMode { get; set; } = AiConnectionMode.LocalServer;
         public string ServerApiUrl { get; set; } = "http://localhost:5000/api/chat";
         public string DirectApiBaseUrl { get; set; } = "https://api.openai.com/v1";
@@ -135,6 +137,16 @@ namespace AiAssistant.UIControls
             };
         }
 
+        public void ClearHistory()
+        {
+            _messageHistory.Clear();
+            // 重新加载空白模板，达到清屏的视觉效果
+            if (_webBrowser != null)
+            {
+                _webBrowser.DocumentText = _htmlTemplate;
+            }
+        }
+
         private void InitializeComponent()
         {
             _webBrowser = new WebBrowser();
@@ -173,7 +185,7 @@ namespace AiAssistant.UIControls
             _clearButton.TextAlign = ContentAlignment.MiddleRight;
             _clearButton.Width = 80;
             _clearButton.Dock = DockStyle.Left;
-            _clearButton.Click += (s, e) => { /* No history management in this widget */ };
+            _clearButton.Click += (s, e) => ClearHistory();
             _clearButton.MouseEnter += (s, e) => { _clearButton.ForeColor = Color.DarkGray; _clearButton.IconColor = Color.DarkGray; };
             _clearButton.MouseLeave += (s, e) => { _clearButton.ForeColor = Color.Gray; _clearButton.IconColor = Color.Gray; };
 
@@ -271,50 +283,45 @@ namespace AiAssistant.UIControls
                 }
                 else // DirectOpenAI
                 {
-                    object payload;
-                    string requestUrl;
-                    var requestMsg = new HttpRequestMessage();
+                    var messages = new System.Collections.Generic.List<object>();
 
-                    if (DirectApiBaseUrl.Contains("googleapis.com"))
+                    if (!string.IsNullOrWhiteSpace(SystemPrompt))
                     {
-                        payload = new { contents = new[] { new { parts = new[] { new { text = message } } } } };
-                        requestUrl = $"{DirectApiBaseUrl.TrimEnd('/')}/models/{DirectApiModel}:generateContent?key={DirectApiKey}";
-                        requestMsg.Method = HttpMethod.Post;
-                        requestMsg.RequestUri = new Uri(requestUrl);
+                        messages.Add(new { role = "system", content = SystemPrompt });
                     }
-                    else
-                    {
-                        payload = new
-                        {
-                            model = DirectApiModel,
-                            messages = new[] { new { role = "user", content = message } }
-                        };
-                        requestUrl = DirectApiBaseUrl.TrimEnd('/') + "/chat/completions";
-                        requestMsg.Method = HttpMethod.Post;
-                        requestMsg.RequestUri = new Uri(requestUrl);
-                        requestMsg.Headers.Add("Authorization", $"Bearer {DirectApiKey}");
-                    }
+                    messages.AddRange(_messageHistory);
+                    messages.Add(new { role = "user", content = message });
 
+                    var payload = new
+                    {
+                        model = DirectApiModel,
+                        messages = messages
+                    };
+
+                    _messageHistory.Add(new { role = "user", content = message });
+
+                    var requestMsg = new HttpRequestMessage(HttpMethod.Post, DirectApiBaseUrl.TrimEnd('/') + "/chat/completions");
+                    requestMsg.Headers.Add("Authorization", $"Bearer {DirectApiKey}");
                     requestMsg.Content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
+
                     var response = await _httpClient.SendAsync(requestMsg);
                     var responseString = await response.Content.ReadAsStringAsync();
                     response.EnsureSuccessStatusCode();
 
                     dynamic result = JsonConvert.DeserializeObject(responseString);
-                    if (DirectApiBaseUrl.Contains("googleapis.com"))
-                    {
-                        responseText = result.candidates[0].content.parts[0].text;
-                    }
-                    else
-                    {
-                        responseText = result.choices[0].message.content;
-                    }
+                    responseText = result.choices[0].message.content;
+
+                    _messageHistory.Add(new { role = "ai", content = responseText });
                 }
 
                 UpdateMessage(thinkingMessageId, responseText);
             }
             catch (Exception ex)
             {
+                if (ConnectionMode == AiConnectionMode.DirectOpenAI && _messageHistory.Count > 0)
+                {
+                    _messageHistory.RemoveAt(_messageHistory.Count - 1);
+                }
                 UpdateMessage(thinkingMessageId, $"出现错误: {ex.Message}");
             }
             finally

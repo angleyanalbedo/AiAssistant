@@ -19,6 +19,18 @@ namespace AiAssistant.UIControls
         private int _ghostLength = 0;
         private const int GhostStyleIndex = 50;
 
+        public enum CodeLanguage { PlainText, CSharp, ST }
+        private CodeLanguage _currentLanguage;
+        public CodeLanguage CurrentLanguage
+        {
+            get { return _currentLanguage; }
+            set
+            {
+                _currentLanguage = value;
+                ApplyLanguageSettings();
+            }
+        }
+
         public event EventHandler<AiActionRequestedEventArgs> OnAiActionRequested;
         public event EventHandler OnFocusChatRequested;
 
@@ -29,13 +41,15 @@ namespace AiAssistant.UIControls
         public string DirectApiModel { get; set; } = "gpt-3.5-turbo";
         public string SystemPrompt { get; set; } = "你是一个代码补全引擎，只输出光标后的补全代码，不要任何解释";
 
-        public AiAutoCompleteEditor()
+        public AiAutoCompleteEditor(CodeLanguage language = CodeLanguage.CSharp)
         {
             InitEditorStyle();
 
             this.CharAdded += AiAutoCompleteEditor_CharAdded;
             this.KeyDown += AiAutoCompleteEditor_KeyDown;
             SetupContextMenu();
+
+            this.CurrentLanguage = language;
         }
 
         private void SetupContextMenu()
@@ -68,11 +82,10 @@ namespace AiAssistant.UIControls
         private void InitEditorStyle()
         {
             // Stage 1: Basic properties and font settings
-            foreach (var style in this.Styles)
-            {
-                style.Font = "Consolas";
-                style.Size = 10;
-            }
+            this.Styles[Style.Default].Font = "Consolas";
+            this.Styles[Style.Default].Size = 10;
+            this.StyleClearAll(); // Apply default to all
+
             this.CaretLineVisible = true;
             this.CaretLineBackColor = Color.FromArgb(240, 240, 240);
 
@@ -100,30 +113,48 @@ namespace AiAssistant.UIControls
                 this.Markers[i].SetBackColor(Color.White);
             }
 
-            // Stage 3: Enable C# syntax highlighting (Lexer)
-            this.LexerName = "cpp";
-            this.SetKeywords(0, "abstract as base bool break byte case catch char checked class const continue decimal default delegate do double else enum event explicit extern false finally fixed float for foreach goto if implicit in int interface internal is lock long namespace new null object operator out override params private protected public readonly ref return sbyte sealed short sizeof stackalloc static string struct switch this throw true try typeof uint ulong unchecked unsafe ushort using virtual void volatile while get set value");
-
-            this.Styles[Style.Cpp.Default].ForeColor = Color.Black;
-            this.Styles[Style.Cpp.Identifier].ForeColor = Color.Black;
-            this.Styles[Style.Cpp.Number].ForeColor = Color.DarkMagenta;
-            this.Styles[Style.Cpp.String].ForeColor = Color.FromArgb(163, 21, 21);
-            this.Styles[Style.Cpp.Character].ForeColor = Color.FromArgb(163, 21, 21);
-            this.Styles[Style.Cpp.Word].ForeColor = Color.Blue;
-            this.Styles[Style.Cpp.Comment].ForeColor = Color.Green;
-            this.Styles[Style.Cpp.CommentLine].ForeColor = Color.Green;
-
             // AutoComplete settings
             this.AutoCMaxHeight = 10;
             this.AutoCMaxWidth = 80;
             this.AutoCSeparator = '|';
             this.AutoCAutoHide = true;
+        }
 
-            // Ghost text style
+        private void ApplyLanguageSettings()
+        {
+            switch (_currentLanguage)
+            {
+                case CodeLanguage.CSharp:
+                    this.LexerName = "cpp";
+                    this.SetKeywords(0, "abstract as base bool break byte case catch char checked class const continue decimal default delegate do double else enum event explicit extern false finally fixed float for foreach goto if implicit in int interface internal is lock long namespace new null object operator out override params private protected public readonly ref return sbyte sealed short sizeof stackalloc static string struct switch this throw true try typeof uint ulong unchecked unsafe ushort using virtual void volatile while get set value");
+                    this.Styles[Style.Cpp.Default].ForeColor = Color.Black;
+                    this.Styles[Style.Cpp.Identifier].ForeColor = Color.Black;
+                    this.Styles[Style.Cpp.Number].ForeColor = Color.DarkMagenta;
+                    this.Styles[Style.Cpp.String].ForeColor = Color.FromArgb(163, 21, 21);
+                    this.Styles[Style.Cpp.Character].ForeColor = Color.FromArgb(163, 21, 21);
+                    this.Styles[Style.Cpp.Word].ForeColor = Color.Blue;
+                    this.Styles[Style.Cpp.Comment].ForeColor = Color.Green;
+                    this.Styles[Style.Cpp.CommentLine].ForeColor = Color.Green;
+                    this.SystemPrompt = "你是一个代码补全引擎，只输出光标后的补全代码，不要任何解释";
+                    break;
+                case CodeLanguage.ST:
+                    this.LexerName = "pascal";
+                    this.SetKeywords(0, "IF THEN ELSE ELSIF END_IF CASE OF END_CASE FOR TO BY DO END_FOR WHILE END_WHILE REPEAT UNTIL END_REPEAT VAR VAR_INPUT VAR_OUTPUT VAR_IN_OUT VAR_GLOBAL END_VAR TYPE END_TYPE STRUCT END_STRUCT PROGRAM FUNCTION_BLOCK AND OR NOT XOR");
+                    this.Styles[Style.Pascal.Word].ForeColor = Color.Blue;
+                    this.Styles[Style.Pascal.Comment].ForeColor = Color.Green;
+                    this.Styles[Style.Pascal.String].ForeColor = Color.DarkRed;
+                    this.SystemPrompt = "你是一个工业自动化专家，请只输出符合 IEC 61131-3 标准的 ST (Structured Text) 补全代码，不要解释。";
+                    break;
+                default: // PlainText
+                    this.LexerName = "null";
+                    this.SystemPrompt = "你是一个代码补全引擎，只输出光标后的补全代码，不要任何解释";
+                    break;
+            }
+
+            // Re-apply ghost text style which is cleared by StyleClearAll
             this.Styles[GhostStyleIndex].ForeColor = Color.Gray;
             this.Styles[GhostStyleIndex].Italic = true;
         }
-
 
         private async void TriggerAiSuggestion()
         {

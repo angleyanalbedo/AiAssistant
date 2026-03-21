@@ -27,7 +27,7 @@ namespace AiAssistant.UIControls
 
         public AiAutoCompleteEditor()
         {
-            InitializeEditorStyle();
+            InitEditorStyle();
 
             _debounceTimer = new Timer();
             _debounceTimer.Interval = 500;
@@ -65,24 +65,53 @@ namespace AiAssistant.UIControls
             }
         }
 
-        private void InitializeEditorStyle()
+        private void InitEditorStyle()
         {
+            // Stage 1: Basic properties and font settings
+            foreach (var style in this.Styles)
+            {
+                style.Font = "Consolas";
+                style.Size = 10;
+            }
+            this.CaretLineVisible = true;
+            this.CaretLineBackColor = Color.FromArgb(240, 240, 240);
+
+            // Stage 2: Configure margins (line numbers and folding)
+            this.Margins[0].Type = MarginType.Number;
             this.Margins[0].Width = 35;
-            this.WrapMode = WrapMode.Word;
 
-            this.LexerName = "pascal";
+            this.SetProperty("fold", "1");
+            this.SetProperty("fold.compact", "1");
+            this.Margins[2].Type = MarginType.Symbol;
+            this.Margins[2].Mask = Marker.MaskFolders;
+            this.Margins[2].Sensitive = true;
+            this.Margins[2].Width = 20;
 
-            this.Styles[Style.Default].Font = "Consolas";
-            this.Styles[Style.Default].Size = 10;
-            this.Styles[Style.Default].ForeColor = Color.Black;
-            this.ClearAll();
+            this.Markers[Marker.Folder].Symbol = MarkerSymbol.BoxPlus;
+            this.Markers[Marker.FolderOpen].Symbol = MarkerSymbol.BoxMinus;
+            this.Markers[Marker.FolderEnd].Symbol = MarkerSymbol.BoxPlus;
+            this.Markers[Marker.FolderOpenMid].Symbol = MarkerSymbol.BoxMinus;
+            this.Markers[Marker.FolderSub].Symbol = MarkerSymbol.VLine;
+            this.Markers[Marker.FolderTail].Symbol = MarkerSymbol.LCorner;
+
+            for (int i = Marker.Folder; i <= Marker.FolderTail; i++)
+            {
+                this.Markers[i].SetForeColor(Color.Gray);
+                this.Markers[i].SetBackColor(Color.White);
+            }
+
+            // Stage 3: Enable C# syntax highlighting (Lexer)
+            this.Lexer = Lexer.Cpp;
+            this.SetKeywords(0, "abstract as base bool break byte case catch char checked class const continue decimal default delegate do double else enum event explicit extern false finally fixed float for foreach goto if implicit in int interface internal is lock long namespace new null object operator out override params private protected public readonly ref return sbyte sealed short sizeof stackalloc static string struct switch this throw true try typeof uint ulong unchecked unsafe ushort using virtual void volatile while get set value");
 
             this.Styles[Style.Cpp.Default].ForeColor = Color.Black;
-            this.Styles[Style.Cpp.Word].ForeColor = Color.Blue;
+            this.Styles[Style.Cpp.Identifier].ForeColor = Color.Black;
+            this.Styles[Style.Cpp.Number].ForeColor = Color.DarkMagenta;
             this.Styles[Style.Cpp.String].ForeColor = Color.FromArgb(163, 21, 21);
+            this.Styles[Style.Cpp.Character].ForeColor = Color.FromArgb(163, 21, 21);
+            this.Styles[Style.Cpp.Word].ForeColor = Color.Blue;
             this.Styles[Style.Cpp.Comment].ForeColor = Color.Green;
             this.Styles[Style.Cpp.CommentLine].ForeColor = Color.Green;
-            this.Styles[Style.Cpp.Number].ForeColor = Color.DarkMagenta;
         }
 
         private void AiAutoCompleteEditor_TextChanged(object sender, EventArgs e)

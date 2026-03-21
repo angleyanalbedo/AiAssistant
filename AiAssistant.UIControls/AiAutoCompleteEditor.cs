@@ -14,6 +14,10 @@ namespace AiAssistant.UIControls
     {
         private Timer _debounceTimer;
         private static readonly HttpClient _httpClient = new HttpClient();
+        private bool _isGhostActive = false;
+        private int _ghostStart = 0;
+        private int _ghostLength = 0;
+        private const int GhostStyleIndex = 50;
 
         public event EventHandler<AiActionRequestedEventArgs> OnAiActionRequested;
         public event EventHandler OnFocusChatRequested;
@@ -112,6 +116,10 @@ namespace AiAssistant.UIControls
             this.Styles[Style.Cpp.Word].ForeColor = Color.Blue;
             this.Styles[Style.Cpp.Comment].ForeColor = Color.Green;
             this.Styles[Style.Cpp.CommentLine].ForeColor = Color.Green;
+
+            // Ghost text style
+            this.Styles[GhostStyleIndex].ForeColor = Color.Gray;
+            this.Styles[GhostStyleIndex].Italic = true;
         }
 
         private void AiAutoCompleteEditor_TextChanged(object sender, EventArgs e)
@@ -196,7 +204,7 @@ namespace AiAssistant.UIControls
 
                 if (!string.IsNullOrEmpty(completion))
                 {
-                    ShowGhostText(completion);
+                    DisplayGhostSuggestion(completion);
                 }
             }
             catch (Exception)
@@ -205,29 +213,110 @@ namespace AiAssistant.UIControls
             }
         }
 
-        private void ShowGhostText(string completionText)
+        private void DisplayGhostSuggestion(string suggestion)
         {
             if (this.InvokeRequired)
             {
-                this.Invoke(new Action(() => ShowGhostText(completionText)));
+                this.Invoke(new Action(() => DisplayGhostSuggestion(suggestion)));
                 return;
             }
 
-            if (this.SelectedText.Length > 0) return;
+            if (_isGhostActive)
+            {
+                ClearGhostSuggestion();
+            }
 
-            int currentPos = this.CurrentPosition;
-            this.InsertText(currentPos, completionText);
-            this.SetSelection(currentPos + completionText.Length, currentPos);
+            if (string.IsNullOrEmpty(suggestion)) return;
+
+            _ghostStart = this.CurrentPosition;
+            _ghostLength = suggestion.Length;
+
+            this.AutoCCompleteCancel();
+
+            this.InsertText(_ghostStart, suggestion);
+            this.Anchor = _ghostStart;
+            this.CurrentPosition = _ghostStart;
+
+            this.StartStyling(_ghostStart);
+            this.SetStyling(_ghostLength, GhostStyleIndex);
+
+            _isGhostActive = true;
+        }
+
+        private void ClearGhostSuggestion()
+        {
+            if (!_isGhostActive) return;
+
+            this.DeleteRange(_ghostStart, _ghostLength);
+
+            _isGhostActive = false;
+            _ghostStart = 0;
+            _ghostLength = 0;
+        }
+
+        private void AcceptGhostSuggestion()
+        {
+            if (!_isGhostActive) return;
+
+            this.StartStyling(_ghostStart);
+            this.SetStyling(_ghostLength, Style.Cpp.Default);
+
+            this.CurrentPosition = _ghostStart + _ghostLength;
+            this.Anchor = this.CurrentPosition;
+
+            _isGhostActive = false;
+            _ghostStart = 0;
+            _ghostLength = 0;
+
+            this.Invalidate();
         }
 
         private void AiAutoCompleteEditor_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Tab && this.SelectedText.Length > 0)
+            if (_isGhostActive)
             {
-                this.GotoPosition(this.SelectionEnd);
-                e.SuppressKeyPress = true;
+                // 1. 采纳逻辑 (Tab 键)
+                if (e.KeyCode == Keys.Tab && e.Modifiers == Keys.None)
+                {
+                    AcceptGhostSuggestion();
+                    e.Handled = true;
+                    e.SuppressKeyPress = true;
+                    return;
+                }
+
+                // 2. 取消逻辑 (Esc 键)
+                if (e.KeyCode == Keys.Escape)
+                {
+                    ClearGhostSuggestion();
+                    e.Handled = true;
+                    e.SuppressKeyPress = true;
+                    return;
+                }
+
+                // 3. 任何其他非纯修饰键的按键都会取消建议，然后正常处理该按键
+                switch (e.KeyCode)
+                {
+                    case Keys.ControlKey:
+                    case Keys.ShiftKey:
+                    case Keys.Menu: // Alt
+                    case Keys.LWin:
+                    case Keys.RWin:
+                        // 如果只是修饰键，则不执行任何操作
+                        break;
+                    default:
+                        // 对于字符、方向键、删除等，先清除建议
+                        ClearGhostSuggestion();
+                        // 然后让 Scintilla 正常处理该按键事件
+                        break;
+                }
             }
-            if (e.Control && e.KeyCode == Keys.J) { e.SuppressKeyPress = true; OnFocusChatRequested?.Invoke(this, EventArgs.Empty); }
+
+            // 保留焦点切换逻辑
+            if (e.Control && e.KeyCode == Keys.J)
+            {
+                e.SuppressKeyPress = true;
+                OnFocusChatRequested?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         public void InsertTextAtCursor(string text)

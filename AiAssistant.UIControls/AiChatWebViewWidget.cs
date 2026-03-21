@@ -285,66 +285,104 @@ namespace AiAssistant.UIControls
             AppendMessage("user", message);
             _inputTextBox.Clear();
 
-            var thinkingMessageId = AppendMessage("ai", "思考中...");
+            string thinkingMessageId = null;
 
             try
             {
-                string responseText = "";
                 if (ConnectionMode == AiConnectionMode.LocalServer)
                 {
+                    thinkingMessageId = AppendMessage("ai", "思考中...");
                     var request = new { message = message };
                     var content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
                     var response = await _httpClient.PostAsync(ServerApiUrl, content);
                     response.EnsureSuccessStatusCode();
-                    responseText = await response.Content.ReadAsStringAsync();
+                    string responseText = await response.Content.ReadAsStringAsync();
+                    UpdateMessage(thinkingMessageId, responseText);
                 }
-                else // DirectOpenAI
+                else // DirectOpenAI with streaming and history
                 {
-                    object payload;
-                    string requestUrl;
-                    var requestMsg = new HttpRequestMessage();
+                    thinkingMessageId = AppendMessage("ai", "..."); // Create an empty bubble first
 
-                    if (DirectApiBaseUrl.Contains("googleapis.com"))
+                    var messages = new System.Collections.Generic.List<object>();
+                    if (!string.IsNullOrWhiteSpace(SystemPrompt))
                     {
-                        payload = new { contents = new[] { new { parts = new[] { new { text = message } } } } };
-                        requestUrl = $"{DirectApiBaseUrl.TrimEnd('/')}/models/{DirectApiModel}:generateContent?key={DirectApiKey}";
-                        requestMsg.Method = HttpMethod.Post;
-                        requestMsg.RequestUri = new Uri(requestUrl);
+                        messages.Add(new { role = "system", content = SystemPrompt });
                     }
-                    else
+                    messages.AddRange(_messageHistory);
+                    messages.Add(new { role = "user", content = message });
+
+                    var payload = new
                     {
-                        payload = new
+                        model = DirectApiModel,
+                        messages = messages,
+                        stream = true
+                    };
+
+                    _messageHistory.Add(new { role = "user", content = message });
+
+                    var request = new HttpRequestMessage(HttpMethod.Post, DirectApiBaseUrl.TrimEnd('/') + "/chat/completions");
+                    request.Headers.Add("Authorization", $"Bearer {DirectApiKey}");
+                    request.Content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
+
+                    string fullAiResponse = "";
+
+                    using (var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
+                    {
+                        response.EnsureSuccessStatusCode();
+                        using (var stream = await response.Content.ReadAsStreamAsync())
+                        using (var reader = new System.IO.StreamReader(stream))
                         {
-                            model = DirectApiModel,
-                            messages = new[] { new { role = "user", content = message } }
-                        };
-                        requestUrl = DirectApiBaseUrl.TrimEnd('/') + "/chat/completions";
-                        requestMsg.Method = HttpMethod.Post;
-                        requestMsg.RequestUri = new Uri(requestUrl);
-                        requestMsg.Headers.Add("Authorization", $"Bearer {DirectApiKey}");
+                            while (!reader.EndOfStream)
+                            {
+                                var line = await reader.ReadLineAsync();
+                                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                                if (line.StartsWith("data: "))
+                                {
+                                    var data = line.Substring(6);
+                                    if (data.Trim() == "[DONE]") break;
+
+                                    try
+                                    {
+                                        dynamic json = JsonConvert.DeserializeObject(data);
+                                        string delta = json.choices[0].delta.content;
+                                        if (!string.IsNullOrEmpty(delta))
+                                        {
+                                            fullAiResponse += delta;
+                                            string html = MarkdownRenderHelper.ConvertToHtml(fullAiResponse);
+                                            var script = $"updateLastBubble('{HttpUtility.JavaScriptStringEncode(html)}')";
+
+                                            if (this.InvokeRequired)
+                                            {
+                                                this.Invoke(new Action(async () => await _chatWebView.ExecuteScriptAsync(script)));
+                                            }
+                                            else
+                                            {
+                                                await _chatWebView.ExecuteScriptAsync(script);
+                                            }
+                                        }
+                                    }
+                                    catch (Exception)
+                                    {
+                                        /* Ignore JSON parsing errors for incomplete chunks */
+                                    }
+                                }
+                            }
+                        }
                     }
 
-                    requestMsg.Content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
-                    var response = await _httpClient.SendAsync(requestMsg);
-                    var responseString = await response.Content.ReadAsStringAsync();
-                    response.EnsureSuccessStatusCode();
-
-                    dynamic result = JsonConvert.DeserializeObject(responseString);
-                    if (DirectApiBaseUrl.Contains("googleapis.com"))
+                    if (!string.IsNullOrEmpty(fullAiResponse))
                     {
-                        responseText = result.candidates[0].content.parts[0].text;
-                    }
-                    else
-                    {
-                        responseText = result.choices[0].message.content;
+                        _messageHistory.Add(new { role = "assistant", content = fullAiResponse });
                     }
                 }
-
-                UpdateMessage(thinkingMessageId, responseText);
             }
             catch (Exception ex)
             {
-                UpdateMessage(thinkingMessageId, $"出现错误: {ex.Message}");
+                if (thinkingMessageId != null)
+                {
+                    UpdateMessage(thinkingMessageId, $"出现错误: {ex.Message}");
+                }
             }
             finally
             {

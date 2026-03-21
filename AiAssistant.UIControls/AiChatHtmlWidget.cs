@@ -1,4 +1,4 @@
-using Markdig;
+using AiAssistant.UIControls.Utils;
 using Newtonsoft.Json;
 using System;
 using System.Drawing;
@@ -19,7 +19,6 @@ namespace AiAssistant.UIControls
         private const string PlaceholderText = "输入消息...";
 
         private static readonly HttpClient _httpClient = new HttpClient();
-        private static readonly MarkdownPipeline _markdownPipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 
         // API Properties
         public AiConnectionMode ConnectionMode { get; set; } = AiConnectionMode.LocalServer;
@@ -243,7 +242,7 @@ namespace AiAssistant.UIControls
             var container = _webBrowser.Document?.GetElementById("chat-container");
             if (container == null) return null;
 
-            var htmlContent = Markdown.ToHtml(markdownText, _markdownPipeline);
+            var htmlContent = MarkdownRenderHelper.ConvertToHtml(markdownText);
             var cssClass = role == "user" ? "msg-user" : "msg-ai";
             
             var newBubble = _webBrowser.Document.CreateElement("div");
@@ -266,7 +265,7 @@ namespace AiAssistant.UIControls
                 return;
             }
             
-            var htmlContent = Markdown.ToHtml(newMarkdownText, _markdownPipeline);
+            var htmlContent = MarkdownRenderHelper.ConvertToHtml(newMarkdownText);
             elementToUpdate.InnerHtml = htmlContent;
 
             var container = _webBrowser.Document?.GetElementById("chat-container");

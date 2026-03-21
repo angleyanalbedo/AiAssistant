@@ -14,11 +14,13 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
     <PackageReference Include="Scintilla.NET" Version="5.3.2.9" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2210.55" />
   </ItemGroup>
 
   <ItemGroup>
     <Reference Include="System.Net.Http" />
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Web" />
   </ItemGroup>
 
 </Project>

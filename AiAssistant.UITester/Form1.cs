@@ -12,10 +12,10 @@ namespace AiAssistant.UITester
             this.Size = new Size(800, 600);
             this.StartPosition = FormStartPosition.CenterScreen;
 
-            var chatWidget = new AiChatWidget
+            var chatWidget = new AiChatHtmlWidget
             {
                 Dock = DockStyle.Right,
-                Width = 300,
+                Width = 400,
                 // To test DirectOpenAI mode, uncomment and fill in the following lines:
                 ConnectionMode = AiConnectionMode.DirectOpenAI,
                 DirectApiBaseUrl = "https://openrouter.ai/api/v1",

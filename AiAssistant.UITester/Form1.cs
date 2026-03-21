@@ -23,17 +23,16 @@ namespace AiAssistant.UITester
                 DirectApiModel = "stepfun/step-3.5-flash:free"
             };
 
-            var autoCompleteTextBox = new AiAutoCompleteTextBox
+            var autoCompleteEditor = new AiAutoCompleteEditor
             {
                 Dock = DockStyle.Fill,
-                Font = new Font("Consolas", 10),
                 ConnectionMode = AiConnectionMode.DirectOpenAI,
                 DirectApiBaseUrl = "https://openrouter.ai/api/v1",
                 DirectApiKey = "[REDACTED OPENROUTER API KEY]",
                 DirectApiModel = "stepfun/step-3.5-flash:free"
             };
 
-            this.Controls.Add(autoCompleteTextBox);
+            this.Controls.Add(autoCompleteEditor);
             this.Controls.Add(chatWidget);
         }
     }

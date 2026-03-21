@@ -11,8 +11,8 @@ namespace AiAssistant.UIControls
 {
     public class AiAutoCompleteTextBox : Scintilla
     {
-        private Timer _debounceTimer;
         private static readonly HttpClient _httpClient = new HttpClient();
+        private System.Threading.CancellationTokenSource _aiCts;
         private string _ghostText = string.Empty;
         private int _ghostTextPosition = -1;
         private bool _isInternalChange = false;
@@ -44,30 +44,10 @@ namespace AiAssistant.UIControls
             this.Styles[GHOST_TEXT_STYLE].ForeColor = SystemColors.GrayText;
             this.Styles[GHOST_TEXT_STYLE].Italic = true;
 
-            // Debounce timer
-            _debounceTimer = new Timer();
-            _debounceTimer.Interval = 500;
-            _debounceTimer.Tick += OnDebounceTimerTick;
-
-            this.TextChanged += AiAutoCompleteTextBox_TextChanged;
             this.KeyDown += AiAutoCompleteTextBox_KeyDown;
             this.UpdateUI += AiAutoCompleteTextBox_UpdateUI;
         }
 
-        private void AiAutoCompleteTextBox_TextChanged(object sender, EventArgs e)
-        {
-            // Don't trigger for internal changes (like ghost text insertion/removal)
-            if (_isInternalChange)
-            {
-                return;
-            }
-
-            _debounceTimer.Stop();
-            if (!string.IsNullOrWhiteSpace(this.Text))
-            {
-                _debounceTimer.Start();
-            }
-        }
 
         private void AiAutoCompleteTextBox_UpdateUI(object sender, UpdateUIEventArgs e)
         {
@@ -81,61 +61,46 @@ namespace AiAssistant.UIControls
             }
         }
 
-        private async void OnDebounceTimerTick(object sender, EventArgs e)
-        {
-            _debounceTimer.Stop();
-            await TriggerCompletion();
-        }
 
-        private async Task TriggerCompletion()
+        private async void TriggerCompletion()
         {
-            if (this.SelectedText.Length > 0 || string.IsNullOrWhiteSpace(this.Text) || this.CurrentPosition < this.TextLength) return;
+            if (this.SelectedText.Length > 0) return;
+
+            _aiCts?.Cancel();
+            _aiCts = new System.Threading.CancellationTokenSource();
+            var token = _aiCts.Token;
 
             try
             {
+                this.CallTipShow(this.CurrentPosition, "AI 正在思考...");
+
+                string completion = "";
                 if (ConnectionMode == AiConnectionMode.LocalServer)
                 {
                     var request = new { text = this.Text };
                     var content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
-                    var response = await _httpClient.PostAsync(ServerApiUrl, content);
+                    var response = await _httpClient.PostAsync(ServerApiUrl, content, token);
                     response.EnsureSuccessStatusCode();
                     var responseString = await response.Content.ReadAsStringAsync();
                     var completionResponse = JsonConvert.DeserializeObject<CompletionResponse>(responseString);
-
-                    if (!string.IsNullOrEmpty(completionResponse.Completion))
-                    {
-                        ShowGhostText(completionResponse.Completion);
-                    }
+                    completion = completionResponse.Completion;
                 }
                 else // DirectOpenAI
                 {
+                    HttpRequestMessage request;
                     if (DirectApiBaseUrl.Contains("googleapis.com"))
                     {
-                        // Google Gemini API logic
                         var geminiPayload = new
                         {
                             systemInstruction = new { parts = new[] { new { text = this.SystemPrompt } } },
                             contents = new[] { new { parts = new[] { new { text = this.Text } } } }
                         };
                         var requestUrl = $"{DirectApiBaseUrl.TrimEnd('/')}/models/{DirectApiModel}:generateContent?key={DirectApiKey}";
-                        var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
+                        request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
                         request.Content = new StringContent(JsonConvert.SerializeObject(geminiPayload), Encoding.UTF8, "application/json");
-
-                        var response = await _httpClient.SendAsync(request);
-                        var responseString = await response.Content.ReadAsStringAsync();
-                        response.EnsureSuccessStatusCode();
-
-                        dynamic result = JsonConvert.DeserializeObject(responseString);
-                        string completion = result.candidates[0].content.parts[0].text;
-
-                        if (!string.IsNullOrEmpty(completion))
-                        {
-                            ShowGhostText(completion);
-                        }
                     }
                     else
                     {
-                        // Standard OpenAI API logic
                         var openAiPayload = new
                         {
                             model = DirectApiModel,
@@ -146,27 +111,45 @@ namespace AiAssistant.UIControls
                             }
                         };
                         var requestUrl = DirectApiBaseUrl.TrimEnd('/') + "/chat/completions";
-                        var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
+                        request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
                         request.Headers.Add("Authorization", $"Bearer {DirectApiKey}");
                         request.Content = new StringContent(JsonConvert.SerializeObject(openAiPayload), Encoding.UTF8, "application/json");
+                    }
 
-                        var response = await _httpClient.SendAsync(request);
+                    using (var response = await _httpClient.SendAsync(request, token))
+                    {
                         var responseString = await response.Content.ReadAsStringAsync();
                         response.EnsureSuccessStatusCode();
 
                         dynamic result = JsonConvert.DeserializeObject(responseString);
-                        string completion = result.choices[0].message.content;
-
-                        if (!string.IsNullOrEmpty(completion))
+                        if (DirectApiBaseUrl.Contains("googleapis.com"))
                         {
-                            ShowGhostText(completion);
+                            completion = result.candidates[0].content.parts[0].text;
+                        }
+                        else
+                        {
+                            completion = result.choices[0].message.content;
                         }
                     }
+                }
+
+                if (token.IsCancellationRequested) return;
+
+                if (!string.IsNullOrEmpty(completion))
+                {
+                    ShowGhostText(completion);
                 }
             }
             catch (Exception)
             {
                 // Ignore completion errors
+            }
+            finally
+            {
+                if (this.CallTipActive)
+                {
+                    this.CallTipCancel();
+                }
             }
         }
 
@@ -206,44 +189,73 @@ namespace AiAssistant.UIControls
             }
         }
 
+        private void AcceptGhostText()
+        {
+            if (string.IsNullOrEmpty(_ghostText)) return;
+
+            this.StartStyling(_ghostTextPosition);
+            this.SetStyling(_ghostText.Length, Style.Default);
+            this.GotoPosition(_ghostTextPosition + _ghostText.Length);
+
+            _ghostText = string.Empty;
+            _ghostTextPosition = -1;
+        }
+
         private void AiAutoCompleteTextBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (!string.IsNullOrEmpty(_ghostText))
             {
                 if (e.KeyCode == Keys.Tab)
                 {
-                    // Accept ghost text
-                    this.StartStyling(_ghostTextPosition);
-                    this.SetStyling(_ghostText.Length, Style.Default);
-                    this.GotoPosition(_ghostTextPosition + _ghostText.Length);
-
-                    _ghostText = string.Empty;
-                    _ghostTextPosition = -1;
-
+                    AcceptGhostText();
                     e.SuppressKeyPress = true;
+                    return;
                 }
-                else if (e.KeyCode != Keys.ShiftKey && e.KeyCode != Keys.ControlKey && e.KeyCode != Keys.Alt)
+
+                // Any other significant key press removes ghost text
+                switch (e.KeyCode)
                 {
-                    // Any other key press removes ghost text
-                    _isInternalChange = true;
-                    try
-                    {
-                        RemoveGhostText();
-                    }
-                    finally
-                    {
-                        _isInternalChange = false;
-                    }
+                    case Keys.ControlKey:
+                    case Keys.ShiftKey:
+                    case Keys.Alt:
+                    case Keys.LWin:
+                    case Keys.RWin:
+                        // Do nothing if it's just a modifier key
+                        break;
+                    default:
+                        _isInternalChange = true;
+                        try
+                        {
+                            RemoveGhostText();
+                        }
+                        finally
+                        {
+                            _isInternalChange = false;
+                        }
+                        if (e.KeyCode == Keys.Escape)
+                        {
+                            e.SuppressKeyPress = true; // Prevent other controls from processing Escape
+                        }
+                        break;
                 }
+            }
+
+            // Manual AI suggestion trigger
+            if (e.Alt && e.KeyCode == Keys.Oem5) // Oem5 is usually backslash '\'
+            {
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+                TriggerCompletion();
+                return;
             }
         }
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing && (_debounceTimer != null))
+            if (disposing)
             {
-                _debounceTimer.Dispose();
-                _debounceTimer = null;
+                _aiCts?.Cancel();
+                _aiCts?.Dispose();
             }
             base.Dispose(disposing);
         }

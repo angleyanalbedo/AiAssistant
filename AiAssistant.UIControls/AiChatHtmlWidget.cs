@@ -14,7 +14,9 @@ namespace AiAssistant.UIControls
         private WebBrowser _webBrowser;
         private TextBox _inputTextBox;
         private Button _sendButton;
-        private Panel _inputPanel;
+        private Panel _inputAreaPanel;
+        private Panel _topBorderPanel;
+        private const string PlaceholderText = "输入消息...";
 
         private static readonly HttpClient _httpClient = new HttpClient();
         private static readonly MarkdownPipeline _markdownPipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
@@ -69,34 +71,62 @@ namespace AiAssistant.UIControls
             _webBrowser = new WebBrowser();
             _inputTextBox = new TextBox();
             _sendButton = new Button();
-            _inputPanel = new Panel();
+            _inputAreaPanel = new Panel();
+            _topBorderPanel = new Panel();
 
-            _inputPanel.SuspendLayout();
+            _inputAreaPanel.SuspendLayout();
             this.SuspendLayout();
 
-            // Input Panel
-            _inputPanel.Dock = DockStyle.Bottom;
-            _inputPanel.Height = 40;
-            _inputPanel.Padding = new Padding(5);
-            _inputPanel.BackColor = SystemColors.Control;
-            _inputPanel.Controls.Add(_sendButton);
-            _inputPanel.Controls.Add(_inputTextBox);
+            // Input Area Panel
+            _inputAreaPanel.Dock = DockStyle.Bottom;
+            _inputAreaPanel.Height = 70;
+            _inputAreaPanel.Padding = new Padding(5);
+            _inputAreaPanel.BackColor = Color.White;
+            _inputAreaPanel.Controls.Add(_topBorderPanel);
+            _inputAreaPanel.Controls.Add(_inputTextBox);
+            _inputAreaPanel.Controls.Add(_sendButton);
+
+            // Top Border
+            _topBorderPanel.Dock = DockStyle.Top;
+            _topBorderPanel.Height = 1;
+            _topBorderPanel.BackColor = Color.LightGray;
 
             // Send Button
             _sendButton.Dock = DockStyle.Right;
-            _sendButton.Width = 75;
+            _sendButton.Width = 70;
             _sendButton.Text = "发送";
             _sendButton.FlatStyle = FlatStyle.Flat;
-            _sendButton.FlatAppearance.BorderColor = SystemColors.ControlDark;
-            _sendButton.FlatAppearance.BorderSize = 1;
+            _sendButton.FlatAppearance.BorderSize = 0;
+            _sendButton.BackColor = Color.FromArgb(0, 120, 215);
+            _sendButton.ForeColor = Color.White;
             _sendButton.Click += async (s, e) => await SendMessageAsync();
 
             // Input TextBox
+            _inputTextBox.Multiline = true;
+            _inputTextBox.BorderStyle = BorderStyle.None;
             _inputTextBox.Dock = DockStyle.Fill;
-            _inputTextBox.BorderStyle = BorderStyle.FixedSingle;
-            _inputTextBox.Font = new Font("Microsoft YaHei UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(0)));
-            _inputTextBox.KeyDown += (s, e) => {
-                if (e.KeyCode == Keys.Enter && !e.Shift)
+            _inputTextBox.Font = new Font("微软雅黑", 10F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(134)));
+            _inputTextBox.Text = PlaceholderText;
+            _inputTextBox.ForeColor = Color.Gray;
+            _inputTextBox.Enter += (s, e) =>
+            {
+                if (_inputTextBox.Text == PlaceholderText)
+                {
+                    _inputTextBox.Text = "";
+                    _inputTextBox.ForeColor = Color.Black;
+                }
+            };
+            _inputTextBox.Leave += (s, e) =>
+            {
+                if (string.IsNullOrWhiteSpace(_inputTextBox.Text))
+                {
+                    _inputTextBox.Text = PlaceholderText;
+                    _inputTextBox.ForeColor = Color.Gray;
+                }
+            };
+            _inputTextBox.KeyDown += (s, e) =>
+            {
+                if (e.KeyCode == Keys.Enter && e.Modifiers == Keys.None)
                 {
                     e.SuppressKeyPress = true;
                     _sendButton.PerformClick();
@@ -111,16 +141,16 @@ namespace AiAssistant.UIControls
 
             // Main Control
             this.Controls.Add(_webBrowser);
-            this.Controls.Add(_inputPanel);
-            _inputPanel.ResumeLayout(false);
-            _inputPanel.PerformLayout();
+            this.Controls.Add(_inputAreaPanel);
+            _inputAreaPanel.ResumeLayout(false);
+            _inputAreaPanel.PerformLayout();
             this.ResumeLayout(false);
         }
 
         private async Task SendMessageAsync()
         {
             var message = _inputTextBox.Text.Trim();
-            if (string.IsNullOrEmpty(message)) return;
+            if (string.IsNullOrEmpty(message) || message == PlaceholderText) return;
 
             _sendButton.Enabled = false;
             _inputTextBox.Enabled = false;
@@ -246,7 +276,8 @@ namespace AiAssistant.UIControls
             {
                 _inputTextBox?.Dispose();
                 _sendButton?.Dispose();
-                _inputPanel?.Dispose();
+                _inputAreaPanel?.Dispose();
+                _topBorderPanel?.Dispose();
                 _webBrowser?.Dispose();
             }
             base.Dispose(disposing);

@@ -28,7 +28,7 @@ namespace AiAssistant.UIControls
         private System.Collections.Generic.List<object> _messageHistory = new System.Collections.Generic.List<object>();
 
         // API Properties
-        public string SystemPrompt { get; set; } = "你是一个专业的 CASS 数据处理与测绘工程AI助手。请给出准确、专业的回答。";
+        public string SystemPrompt { get; set; } = "你是一个专业的数据处理与测绘工程AI助手。请给出准确、专业的回答。";
         public AiConnectionMode ConnectionMode { get; set; } = AiConnectionMode.LocalServer;
         public string ServerApiUrl { get; set; } = "http://localhost:5000/api/chat";
         public string DirectApiBaseUrl { get; set; } = "https://api.openai.com/v1";

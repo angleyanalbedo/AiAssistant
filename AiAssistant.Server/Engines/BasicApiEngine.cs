@@ -1,4 +1,5 @@
 using AiAssistant.Server.Interfaces;
+using AiAssistant.Server.Models;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -75,6 +76,11 @@ namespace AiAssistant.Server.Engines
             {
                 return $"联系 AI 服务时发生错误: {ex.Message}";
             }
+        }
+
+        public Task<string> ChatAsync(ChatRequest request)
+        {
+            throw new NotImplementedException();
         }
     }
 }

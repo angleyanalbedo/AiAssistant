@@ -201,7 +201,7 @@ namespace AiAssistant.UIControls
             }
         }
 
-        private void OnWebMessageReceived(object sender, Microsoft.Web.WebView2.Core.CoreWebMessageReceivedEventArgs e)
+        private void OnWebMessageReceived(object sender, Microsoft.Web.WebView2.Core.CoreWebView2WebMessageReceivedEventArgs e)
         {
             try
             {

@@ -35,23 +35,7 @@ namespace AiAssistant.UITester
             this.Size = new Size(1200, 700);
             this.StartPosition = FormStartPosition.CenterScreen;
 
-            string apiKey = "";
-            string configPath = "config.json";
-
-            if (File.Exists(configPath))
-            {
-                var configJson = File.ReadAllText(configPath);
-                dynamic config = JsonConvert.DeserializeObject(configJson);
-                apiKey = config.ApiKey;
-            }
-            else
-            {
-                MessageBox.Show(
-                    "未找到 config.json 配置文件！\n请在程序运行目录下复制 config.example.json 并将其重命名为 config.json，填入你的真实 API Key 后重试。",
-                    "配置错误",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
-            }
+            
 
             var splitContainer = new SplitContainer
             {

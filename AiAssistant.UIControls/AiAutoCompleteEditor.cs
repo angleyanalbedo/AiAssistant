@@ -37,7 +37,7 @@ namespace AiAssistant.UIControls
             this.Margins[0].Width = 35;
             this.WrapMode = WrapMode.Word;
 
-            this.LexerName = "csharp";
+            this.LexerName = "pascal";
 
             this.Styles[Style.Default].Font = "Consolas";
             this.Styles[Style.Default].Size = 10;

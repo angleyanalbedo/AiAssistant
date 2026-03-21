@@ -7,6 +7,11 @@
     <OutputType>Library</OutputType>
     <RootNamespace>AiAssistant.UIControls</RootNamespace>
     <AssemblyName>AiAssistant.UIControls</AssemblyName>
+    <Version>1.0.0</Version>
+    <Authors>YourName</Authors>
+    <Description>A high-performance AI UI component library for .NET 4.5 WinForms, providing ghost-text completion, ST/C# syntax highlighting, and dual-engine chat widgets.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,6 +27,10 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Web" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 

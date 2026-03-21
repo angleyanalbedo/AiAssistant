@@ -37,6 +37,8 @@ namespace AiAssistant.UIControls
 <html>
 <head>
     <meta charset='UTF-8'>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; margin: 0; padding: 10px; background-color: #F0F0F0; overflow-y: scroll; }
         #chat-container { display: flex; flex-direction: column; gap: 10px; }
@@ -44,10 +46,20 @@ namespace AiAssistant.UIControls
         .msg-user { align-self: flex-end; background-color: #DCF8C6; color: #000; }
         .msg-ai { align-self: flex-start; background-color: #FFF; color: #000; border: 1px solid #EAEAEA; }
         pre { position: relative; background-color: #F4F4F4; border: 1px solid #DDD; border-radius: 5px; padding: 10px; font-family: Consolas, 'Courier New', monospace; white-space: pre-wrap; word-wrap: break-word; }
-        .code-actions { position: absolute; top: 5px; right: 5px; display: none; background-color: #F4F4F4; padding: 2px;}
-        pre:hover .code-actions { display: block; }
-        .code-actions button { background-color: #888; color: white; border: none; border-radius: 3px; padding: 2px 6px; cursor: pointer; font-size: 12px; margin-left: 4px; }
-        .code-actions button:hover { background-color: #666; }
+        .insert-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            padding: 4px 8px;
+            cursor: pointer;
+            background-color: #888;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            font-size: 12px;
+            display: none;
+        }
+        pre:hover .insert-btn { display: block; }
         code { font-family: Consolas, 'Courier New', monospace; }
         p { margin: 0 0 10px 0; }
         p:last-child { margin-bottom: 0; }
@@ -57,38 +69,29 @@ namespace AiAssistant.UIControls
         hr { height: 1px; border: none; background-color: #E5E7EB; margin: 16px 0; }
     </style>
     <script>
-        function addCodeActionButtons(bubble) {
-            const pres = bubble.querySelectorAll('pre');
-            pres.forEach(pre => {
-                const code = pre.querySelector('code');
-                if (!code) return;
+        function enhanceCodeBlocks() {
+            // 1. Trigger syntax highlighting
+            hljs.highlightAll();
 
-                const actionsDiv = document.createElement('div');
-                actionsDiv.className = 'code-actions';
+            // 2. Iterate over all code blocks to add the 'insert' button
+            document.querySelectorAll('pre').forEach((block) => {
+                // Prevent adding buttons multiple times
+                if (block.hasAttribute('data-btn-added')) return;
+                block.setAttribute('data-btn-added', 'true');
 
-                const insertButton = document.createElement('button');
-                insertButton.innerText = '插入';
-                insertButton.onclick = () => {
-                    window.chrome.webview.postMessage(JSON.stringify({
-                        type: 'insertCode',
-                        replace: false,
-                        code: code.innerText
-                    }));
+                let btn = document.createElement('button');
+                btn.innerText = '插入光标处';
+                btn.className = 'insert-btn';
+
+                btn.onclick = function () {
+                    // Extract pure code text
+                    let codeText = block.querySelector('code').innerText;
+                    // Send JSON message to C# using WebView2 native API
+                    window.chrome.webview.postMessage(JSON.stringify({ action: 'insert', code: codeText }));
+                    btn.innerText = '已触发!';
+                    setTimeout(() => btn.innerText = '插入光标处', 2000);
                 };
-                
-                const replaceButton = document.createElement('button');
-                replaceButton.innerText = '替换';
-                replaceButton.onclick = () => {
-                    window.chrome.webview.postMessage(JSON.stringify({
-                        type: 'insertCode',
-                        replace: true,
-                        code: code.innerText
-                    }));
-                };
-
-                actionsDiv.appendChild(insertButton);
-                actionsDiv.appendChild(replaceButton);
-                pre.appendChild(actionsDiv);
+                block.appendChild(btn);
             });
         }
 
@@ -98,15 +101,17 @@ namespace AiAssistant.UIControls
             bubble.id = id;
             bubble.className = `msg msg-${role}`;
             bubble.innerHTML = htmlContent;
-            addCodeActionButtons(bubble);
             container.appendChild(bubble);
+            
+            enhanceCodeBlocks();
             window.scrollTo(0, document.body.scrollHeight);
         }
+
         function updateBubble(id, htmlContent) {
             const bubble = document.getElementById(id);
             if (bubble) {
                 bubble.innerHTML = htmlContent;
-                addCodeActionButtons(bubble);
+                enhanceCodeBlocks();
                 window.scrollTo(0, document.body.scrollHeight);
             }
         }
@@ -205,19 +210,20 @@ namespace AiAssistant.UIControls
         {
             try
             {
-                var message = JsonConvert.DeserializeObject<dynamic>(e.WebMessageAsJson);
-                string type = message.type;
+                string jsonMessage = e.TryGetWebMessageAsString();
+                if (string.IsNullOrEmpty(jsonMessage)) return;
 
-                if (type == "insertCode")
+                dynamic payload = JsonConvert.DeserializeObject<dynamic>(jsonMessage);
+                if (payload.action == "insert")
                 {
-                    string code = message.code;
-                    bool replace = message.replace;
-                    OnInsertCodeRequested?.Invoke(this, new InsertCodeEventArgs { Code = code, ReplaceSelection = replace });
+                    string codeToInsert = payload.code;
+                    // Trigger the public event to notify the host form
+                    OnInsertCodeRequested?.Invoke(this, new InsertCodeEventArgs { Code = codeToInsert, ReplaceSelection = false });
                 }
             }
-            catch
+            catch (Exception)
             {
-                // Ignore malformed messages
+                // Ignore malformed messages or logging
             }
         }
 

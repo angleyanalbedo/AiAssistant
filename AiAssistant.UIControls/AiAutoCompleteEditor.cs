@@ -38,19 +38,19 @@ namespace AiAssistant.UIControls
             this.Margins[0].Width = 35;
             this.WrapMode = WrapMode.Word;
 
-            this.LexerName = "pascal";
+            this.Lexer = "pascal";
 
-            this.Styles[Style.Default].Font = "Consolas";
-            this.Styles[Style.Default].Size = 10;
-            this.Styles[Style.Default].ForeColor = Color.Black;
+            this.StyleSetFont(Style.Default, "Consolas");
+            this.StyleSetSize(Style.Default, 10);
+            this.StyleSetForeColor(Style.Default, Color.Black);
             this.ClearAll();
 
-            this.Styles[Style.Cpp.Default].ForeColor = Color.Black;
-            this.Styles[Style.Cpp.Word].ForeColor = Color.Blue;
-            this.Styles[Style.Cpp.String].ForeColor = Color.FromArgb(163, 21, 21);
-            this.Styles[Style.Cpp.Comment].ForeColor = Color.Green;
-            this.Styles[Style.Cpp.CommentLine].ForeColor = Color.Green;
-            this.Styles[Style.Cpp.Number].ForeColor = Color.DarkMagenta;
+            this.StyleSetForeColor(Style.Cpp.Default, Color.Black);
+            this.StyleSetForeColor(Style.Cpp.Word, Color.Blue);
+            this.StyleSetForeColor(Style.Cpp.String, Color.FromArgb(163, 21, 21));
+            this.StyleSetForeColor(Style.Cpp.Comment, Color.Green);
+            this.StyleSetForeColor(Style.Cpp.CommentLine, Color.Green);
+            this.StyleSetForeColor(Style.Cpp.Number, Color.DarkMagenta);
         }
 
         private void AiAutoCompleteEditor_TextChanged(object sender, EventArgs e)

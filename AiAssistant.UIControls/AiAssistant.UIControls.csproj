@@ -15,6 +15,7 @@
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
     <PackageReference Include="Scintilla.NET" Version="5.3.2.9" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2210.55" />
+    <PackageReference Include="FontAwesome.Sharp" Version="5.15.4" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,16 +24,5 @@
     <Reference Include="System.Web" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <PackageReference Include="FontAwesome.Sharp">
-      <Version>5.15.4</Version>
-    </PackageReference>
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
-    <PackageReference Include="FontAwesome.Sharp">
-      <Version>5.15.4</Version>
-    </PackageReference>
-  </ItemGroup>
 
 </Project>

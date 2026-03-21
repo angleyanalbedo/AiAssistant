@@ -141,6 +141,8 @@ namespace AiAssistant.UIControls
         {
             if (this.SelectedText.Length > 0 || string.IsNullOrWhiteSpace(this.Text)) return;
 
+            ClearGhostSuggestion();
+
             try
             {
                 string completion = "";

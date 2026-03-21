@@ -23,6 +23,7 @@ namespace AiAssistant.UIControls
         public string DirectApiBaseUrl { get; set; } = "https://api.openai.com/v1";
         public string DirectApiKey { get; set; } = "";
         public string DirectApiModel { get; set; } = "gpt-3.5-turbo";
+        public string SystemPrompt { get; set; } = "你是一个代码补全助手，只输出补全的代码，不要任何解释";
 
         public AiAutoCompleteTextBox()
         {
@@ -113,7 +114,7 @@ namespace AiAssistant.UIControls
                         // Google Gemini API logic
                         var geminiPayload = new
                         {
-                            systemInstruction = new { parts = new[] { new { text = "你是一个代码补全助手，只输出补全的代码，不要任何解释" } } },
+                            systemInstruction = new { parts = new[] { new { text = this.SystemPrompt } } },
                             contents = new[] { new { parts = new[] { new { text = this.Text } } } }
                         };
                         var requestUrl = $"{DirectApiBaseUrl.TrimEnd('/')}/models/{DirectApiModel}:generateContent?key={DirectApiKey}";
@@ -140,7 +141,7 @@ namespace AiAssistant.UIControls
                             model = DirectApiModel,
                             messages = new[]
                             {
-                                new { role = "system", content = "你是一个代码补全助手，只输出补全的代码，不要任何解释" },
+                                new { role = "system", content = this.SystemPrompt },
                                 new { role = "user", content = this.Text }
                             }
                         };

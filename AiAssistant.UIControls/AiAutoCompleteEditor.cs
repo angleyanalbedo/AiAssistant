@@ -19,6 +19,7 @@ namespace AiAssistant.UIControls
         public string DirectApiBaseUrl { get; set; } = "https://api.openai.com/v1";
         public string DirectApiKey { get; set; } = "";
         public string DirectApiModel { get; set; } = "gpt-3.5-turbo";
+        public string SystemPrompt { get; set; } = "你是一个代码补全引擎，只输出光标后的补全代码，不要任何解释";
 
         public AiAutoCompleteEditor()
         {
@@ -92,7 +93,11 @@ namespace AiAssistant.UIControls
 
                     if (DirectApiBaseUrl.Contains("googleapis.com"))
                     {
-                        payload = new { contents = new[] { new { parts = new[] { new { text = this.Text } } } } };
+                        payload = new
+                        {
+                            systemInstruction = new { parts = new[] { new { text = this.SystemPrompt } } },
+                            contents = new[] { new { parts = new[] { new { text = this.Text } } } }
+                        };
                         requestUrl = $"{DirectApiBaseUrl.TrimEnd('/')}/models/{DirectApiModel}:generateContent?key={DirectApiKey}";
                         request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
                     }
@@ -103,7 +108,7 @@ namespace AiAssistant.UIControls
                             model = DirectApiModel,
                             messages = new[]
                             {
-                                new { role = "system", content = "你是一个代码补全引擎，只输出光标后的补全代码，不要任何解释" },
+                                new { role = "system", content = this.SystemPrompt },
                                 new { role = "user", content = this.Text }
                             }
                         };

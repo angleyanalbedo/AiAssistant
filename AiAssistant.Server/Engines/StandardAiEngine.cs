@@ -1,4 +1,5 @@
 using AiAssistant.Server.Interfaces;
+using AiAssistant.Server.Models;
 using AiAssistant.Server.Utils;
 using Microsoft.Extensions.Configuration;
 using OpenAI;
@@ -18,7 +19,7 @@ namespace AiAssistant.Server.Engines
             _configuration = configuration;
         }
 
-        public async Task<string> ChatAsync(string message)
+        public async Task<string> ChatAsync(ChatRequest request)
         {
             try
             {
@@ -53,12 +54,24 @@ namespace AiAssistant.Server.Engines
 
                 var chatClient = client.GetChatClient(model);
 
-                var messages = new List<ChatMessage>
+                var openAiMessages = new List<OpenAI.Chat.ChatMessage>();
+                foreach (var message in request.Messages)
                 {
-                    new UserChatMessage(message)
-                };
+                    if (message.Role.Equals("assistant", StringComparison.OrdinalIgnoreCase))
+                    {
+                        openAiMessages.Add(new AssistantChatMessage(message.Content));
+                    }
+                    else if (message.Role.Equals("system", StringComparison.OrdinalIgnoreCase))
+                    {
+                        openAiMessages.Add(new SystemChatMessage(message.Content));
+                    }
+                    else // Default to user
+                    {
+                        openAiMessages.Add(new UserChatMessage(message.Content));
+                    }
+                }
 
-                var response = await chatClient.CompleteChatAsync(messages);
+                var response = await chatClient.CompleteChatAsync(openAiMessages);
 
                 return AnsiStripper.Clean(response.Value.Content[0].Text);
             }

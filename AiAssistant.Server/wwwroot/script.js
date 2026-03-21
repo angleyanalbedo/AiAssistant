@@ -3,6 +3,8 @@ const userInput = document.getElementById('userInput');
 const chatLog = document.getElementById('chatLog');
 const submitButton = chatForm.querySelector('button[type="submit"]');
 
+let messageHistory = [{ role: 'system', content: 'You are a helpful assistant.' }];
+
 chatForm.addEventListener('submit', function (e) {
     e.preventDefault();
     sendMessage();
@@ -13,6 +15,7 @@ async function sendMessage() {
     if (!messageText) return;
 
     appendMessage(messageText, 'user');
+    messageHistory.push({ role: 'user', content: messageText });
     userInput.value = '';
     submitButton.disabled = true;
 
@@ -22,7 +25,7 @@ async function sendMessage() {
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: messageText }),
+            body: JSON.stringify({ messages: messageHistory }),
         });
 
         if (!response.ok) {
@@ -31,9 +34,12 @@ async function sendMessage() {
         }
 
         const data = await response.json();
-        thinkingMessage.querySelector('.message-content').textContent = data.reply;
+        const replyText = data.reply;
+        thinkingMessage.querySelector('.message-content').textContent = replyText;
+        messageHistory.push({ role: 'assistant', content: replyText });
     } catch (error) {
         thinkingMessage.querySelector('.message-content').textContent = `Error: ${error.message}`;
+        messageHistory.pop(); // Remove the user message that caused the error
     } finally {
         submitButton.disabled = false;
         userInput.focus();

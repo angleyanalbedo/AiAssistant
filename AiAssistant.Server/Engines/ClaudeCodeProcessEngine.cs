@@ -1,4 +1,5 @@
 using AiAssistant.Server.Interfaces;
+using AiAssistant.Server.Models;
 using AiAssistant.Server.Utils;
 using System;
 using System.Diagnostics;
@@ -9,15 +10,22 @@ namespace AiAssistant.Server.Engines
 {
     public class ClaudeCodeProcessEngine : IAiEngine
     {
-        public async Task<string> ChatAsync(string message)
+        public async Task<string> ChatAsync(ChatRequest request)
         {
             try
             {
+                var promptBuilder = new StringBuilder();
+                foreach (var message in request.Messages)
+                {
+                    promptBuilder.AppendLine($"{message.Role}: {message.Content}");
+                }
+                var fullPrompt = promptBuilder.ToString();
+
                 var process = new Process();
                 process.StartInfo = new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
-                    Arguments = $"/c claude \"{message.Replace("\"", "\\\"")}\"",
+                    Arguments = $"/c claude \"{fullPrompt.Replace("\"", "\\\"")}\"",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,

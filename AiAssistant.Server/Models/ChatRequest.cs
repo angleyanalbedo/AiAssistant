@@ -1,4 +1,15 @@
+using System.Collections.Generic;
+
 namespace AiAssistant.Server.Models
 {
-    public record ChatRequest(string Message);
+    public class ChatMessage
+    {
+        public string Role { get; set; }
+        public string Content { get; set; }
+    }
+
+    public class ChatRequest
+    {
+        public List<ChatMessage> Messages { get; set; }
+    }
 }

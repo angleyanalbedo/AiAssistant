@@ -42,12 +42,12 @@ app.UseStaticFiles();
 // 定义聊天 API 端点
 app.MapPost("/api/chat", async (ChatRequest request, IAiEngine engine) =>
 {
-    if (string.IsNullOrWhiteSpace(request.Message))
+    if (request.Messages == null || request.Messages.Count == 0)
     {
-        return Results.BadRequest("Message cannot be empty.");
+        return Results.BadRequest("Messages cannot be empty.");
     }
 
-    var reply = await engine.ChatAsync(request.Message);
+    var reply = await engine.ChatAsync(request);
     return Results.Ok(new { reply });
 });
 

@@ -1,4 +1,4 @@
-using CommonMark;
+using Markdig;
 using Newtonsoft.Json;
 using System;
 using System.Drawing;
@@ -17,6 +17,7 @@ namespace AiAssistant.UIControls
         private Panel _inputPanel;
 
         private static readonly HttpClient _httpClient = new HttpClient();
+        private static readonly MarkdownPipeline _markdownPipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 
         // API Properties
         public AiConnectionMode ConnectionMode { get; set; } = AiConnectionMode.LocalServer;
@@ -41,6 +42,11 @@ namespace AiAssistant.UIControls
         code { font-family: Consolas, 'Courier New', monospace; }
         p { margin: 0 0 10px 0; }
         p:last-child { margin-bottom: 0; }
+        table { border-collapse: collapse; width: 100%; margin: 10px 0; background-color: #fff; }
+        th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }
+        th { background-color: #f0f0f0; font-weight: bold; }
+        /* 防止表格过宽导致撑破气泡 */
+        .msg-ai, .msg-user { overflow-x: auto; }
     </style>
 </head>
 <body>
@@ -201,7 +207,7 @@ namespace AiAssistant.UIControls
             var container = _webBrowser.Document?.GetElementById("chat-container");
             if (container == null) return null;
 
-            var htmlContent = CommonMarkConverter.Convert(markdownText);
+            var htmlContent = Markdown.ToHtml(markdownText, _markdownPipeline);
             var cssClass = role == "user" ? "msg-user" : "msg-ai";
             
             var newBubble = _webBrowser.Document.CreateElement("div");
@@ -224,7 +230,7 @@ namespace AiAssistant.UIControls
                 return;
             }
             
-            var htmlContent = CommonMarkConverter.Convert(newMarkdownText);
+            var htmlContent = Markdown.ToHtml(newMarkdownText, _markdownPipeline);
             elementToUpdate.InnerHtml = htmlContent;
 
             var container = _webBrowser.Document?.GetElementById("chat-container");

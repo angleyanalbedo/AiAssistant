@@ -18,19 +18,24 @@ namespace AiAssistant.UIControls
         private WebView2 _chatWebView;
         private TextBox _inputTextBox;
         private Button _sendButton;
+        private Button _clearButton;
         private Panel _inputAreaPanel;
         private Panel _topBorderPanel;
         private const string PlaceholderText = "输入消息...";
 
         private static readonly HttpClient _httpClient = new HttpClient();
         private bool _isWebViewReady = false;
+        private System.Collections.Generic.List<object> _messageHistory = new System.Collections.Generic.List<object>();
 
         // API Properties
+        public string SystemPrompt { get; set; } = "你是一个专业的AI编程助手。请提供准确、简洁的代码和解释。";
         public AiConnectionMode ConnectionMode { get; set; } = AiConnectionMode.LocalServer;
         public string ServerApiUrl { get; set; } = "http://localhost:5000/api/chat";
         public string DirectApiBaseUrl { get; set; } = "https://api.openai.com/v1";
         public string DirectApiKey { get; set; } = "";
         public string DirectApiModel { get; set; } = "gpt-3.5-turbo";
+
+        public void ClearHistory() { _messageHistory.Clear(); AppendMessage("ai", "上下文已清空，我们可以开始新的对话了。"); }
 
         private readonly string _htmlTemplate = @"
 <!DOCTYPE html>
@@ -115,6 +120,36 @@ namespace AiAssistant.UIControls
                 window.scrollTo(0, document.body.scrollHeight);
             }
         }
+
+        function updateLastBubble(htmlContent) {
+            var aiBubbles = document.getElementsByClassName('msg-ai');
+            if (aiBubbles.length > 0) {
+                var lastBubble = aiBubbles[aiBubbles.length - 1];
+                lastBubble.innerHTML = htmlContent;
+           
+                // 为新生成的代码块添加高亮和插入按钮
+                hljs.highlightAll();
+                var blocks = lastBubble.getElementsByTagName('pre');
+                for (var i = 0; i < blocks.length; i++) {
+                    if (blocks[i].getAttribute('data-btn-added') === 'true') continue;
+                    blocks[i].setAttribute('data-btn-added', 'true');
+                    blocks[i].style.position = 'relative';
+                    var btn = document.createElement('button');
+                    btn.innerText = '插入光标处';
+                    btn.className = 'insert-btn';
+                    (function(btn, block) {
+                        btn.onclick = function() {
+                            var codeText = block.querySelector('code').innerText;
+                            window.chrome.webview.postMessage(JSON.stringify({ action: 'insert', code: codeText }));
+                            btn.innerText = '已触发!';
+                            setTimeout(function(){ btn.innerText = '插入光标处'; }, 2000);
+                        };
+                    })(btn, blocks[i]);
+                    blocks[i].appendChild(btn);
+                }
+                window.scrollTo(0, document.body.scrollHeight);
+            }
+        }
     </script>
 </head>
 <body>
@@ -133,6 +168,7 @@ namespace AiAssistant.UIControls
             _chatWebView = new WebView2();
             _inputTextBox = new TextBox();
             _sendButton = new Button();
+            _clearButton = new Button();
             _inputAreaPanel = new Panel();
             _topBorderPanel = new Panel();
 
@@ -147,11 +183,22 @@ namespace AiAssistant.UIControls
             _inputAreaPanel.Controls.Add(_topBorderPanel);
             _inputAreaPanel.Controls.Add(_inputTextBox);
             _inputAreaPanel.Controls.Add(_sendButton);
+            _inputAreaPanel.Controls.Add(_clearButton);
 
             // Top Border
             _topBorderPanel.Dock = DockStyle.Top;
             _topBorderPanel.Height = 1;
             _topBorderPanel.BackColor = Color.LightGray;
+
+            // Clear Button
+            _clearButton.Dock = DockStyle.Left;
+            _clearButton.Width = 50;
+            _clearButton.Text = "清空";
+            _clearButton.FlatStyle = FlatStyle.Flat;
+            _clearButton.FlatAppearance.BorderSize = 0;
+            _clearButton.BackColor = Color.FromArgb(224, 224, 224);
+            _clearButton.ForeColor = Color.Black;
+            _clearButton.Click += (s, e) => ClearHistory();
 
             // Send Button
             _sendButton.Dock = DockStyle.Right;

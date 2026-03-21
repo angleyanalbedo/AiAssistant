@@ -16,6 +16,7 @@ namespace AiAssistant.UIControls
         private static readonly HttpClient _httpClient = new HttpClient();
 
         public event EventHandler<AiActionRequestedEventArgs> OnAiActionRequested;
+        public event EventHandler OnFocusChatRequested;
 
         public AiConnectionMode ConnectionMode { get; set; } = AiConnectionMode.LocalServer;
         public string ServerApiUrl { get; set; } = "http://localhost:5000/api/completion";
@@ -197,6 +198,7 @@ namespace AiAssistant.UIControls
                 this.GotoPosition(this.SelectionEnd);
                 e.SuppressKeyPress = true;
             }
+            if (e.Control && e.KeyCode == Keys.J) { e.SuppressKeyPress = true; OnFocusChatRequested?.Invoke(this, EventArgs.Empty); }
         }
 
         public void InsertTextAtCursor(string text)
@@ -208,6 +210,8 @@ namespace AiAssistant.UIControls
         {
             this.ReplaceSelection(text);
         }
+
+        public void FocusEditor() { this.Focus(); }
 
         protected override void Dispose(bool disposing)
         {

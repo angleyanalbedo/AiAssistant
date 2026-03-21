@@ -100,6 +100,10 @@ namespace AiAssistant.UITester
                     autoCompleteEditor.InsertTextAtCursor(args.Code);
             };
 
+            // Bridge focus events
+            autoCompleteEditor.OnFocusChatRequested += (s, e) => webViewChatWidget.FocusInput();
+            webViewChatWidget.OnFocusEditorRequested += (s, e) => autoCompleteEditor.FocusEditor();
+
             this.Controls.Add(autoCompleteEditor);
             this.Controls.Add(splitContainer);
         }

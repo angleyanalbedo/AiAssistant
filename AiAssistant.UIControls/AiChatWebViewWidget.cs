@@ -14,6 +14,7 @@ namespace AiAssistant.UIControls
     public class AiChatWebViewWidget : UserControl
     {
         public event EventHandler<InsertCodeEventArgs> OnInsertCodeRequested;
+        public event EventHandler OnFocusEditorRequested;
 
         private WebView2 _chatWebView;
         private TextBox _inputTextBox;
@@ -219,7 +220,10 @@ namespace AiAssistant.UIControls
             _inputTextBox.ForeColor = Color.Gray;
             _inputTextBox.Enter += (s, e) => { if (_inputTextBox.Text == PlaceholderText) { _inputTextBox.Text = ""; _inputTextBox.ForeColor = Color.Black; } };
             _inputTextBox.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(_inputTextBox.Text)) { _inputTextBox.Text = PlaceholderText; _inputTextBox.ForeColor = Color.Gray; } };
-            _inputTextBox.KeyDown += (s, e) => { if (e.KeyCode == Keys.Enter && e.Modifiers == Keys.None) { e.SuppressKeyPress = true; _sendButton.PerformClick(); } };
+            _inputTextBox.KeyDown += (s, e) => {
+                if (e.KeyCode == Keys.Enter && e.Modifiers == Keys.None) { e.SuppressKeyPress = true; _sendButton.PerformClick(); }
+                if (e.KeyCode == Keys.Escape) { e.SuppressKeyPress = true; OnFocusEditorRequested?.Invoke(this, EventArgs.Empty); }
+            };
 
             // WebView2
             _chatWebView.Dock = DockStyle.Fill;
@@ -441,6 +445,8 @@ namespace AiAssistant.UIControls
             _inputTextBox.ForeColor = Color.Black;
             _sendButton.PerformClick();
         }
+
+        public void FocusInput() { _inputTextBox.Focus(); }
 
         protected override void Dispose(bool disposing)
         {

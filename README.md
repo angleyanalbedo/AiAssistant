@@ -1,5 +1,7 @@
 # AiAssistant
 
+[![.NET CI Build](https://github.com/YOUR_USERNAME/YOUR_REPOSITORY/actions/workflows/dotnet.yml/badge.svg)](https://github.com/YOUR_USERNAME/YOUR_REPOSITORY/actions/workflows/dotnet.yml)
+
 AiAssistant 是一个功能强大且可扩展的 AI 助手后端服务，旨在提供一个统一的接口来与全球主流的大型语言模型（LLM）进行交互。它既可以作为个人开发和测试的工具，也可以作为构建更复杂 AI 应用的坚实基础。
 
 ## ✨ 功能特性

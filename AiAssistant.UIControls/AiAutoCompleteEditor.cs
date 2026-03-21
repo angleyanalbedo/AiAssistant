@@ -33,7 +33,6 @@ namespace AiAssistant.UIControls
         {
             InitEditorStyle();
 
-            this.TextChanged += AiAutoCompleteEditor_TextChanged;
             this.CharAdded += AiAutoCompleteEditor_CharAdded;
             this.KeyDown += AiAutoCompleteEditor_KeyDown;
             SetupContextMenu();
@@ -125,64 +124,22 @@ namespace AiAssistant.UIControls
             this.Styles[GhostStyleIndex].Italic = true;
         }
 
-        private async void AiAutoCompleteEditor_TextChanged(object sender, EventArgs e)
+
+        private async void TriggerAiSuggestion()
         {
-            // 1. 只要文档有任何变化，立即杀死上一秒的幽灵和网络请求
-            _aiCts?.Cancel();
             if (_isGhostActive) ClearGhostSuggestion();
 
+            _aiCts?.Cancel();
             _aiCts = new System.Threading.CancellationTokenSource();
             var token = _aiCts.Token;
 
-            // 2. 核心拦截：什么情况下【绝对不】触发 AI？
-            // - 原生下拉框正在显示
-            if (this.AutoCActive) return;
-
-            // - 光标不在行尾 (防止把代码从中间劈开)
-            int currentPos = this.CurrentPosition;
-            int lineIndex = this.LineFromPosition(currentPos);
-            int lineEndPos = this.Lines[lineIndex].EndPosition;
-            if (currentPos < lineEndPos) return;
-
-            // - 光标紧挨着字母 (说明用户正在拼写变量，等他拼完)
-            if (currentPos > 0)
-            {
-                char prevChar = (char)this.GetCharAt(currentPos - 1);
-                if (char.IsLetterOrDigit(prevChar)) return;
-            }
+            string context = this.Text;
+            if (string.IsNullOrWhiteSpace(context)) return;
 
             try
             {
-                // 3. 智能防抖：等待 600 毫秒。如果这期间用户敲了键盘，token 会被 Cancel，直接 return。
-                await Task.Delay(600, token);
-                if (token.IsCancellationRequested) return;
+                this.CallTipShow(this.CurrentPosition, "AI 正在思考...");
 
-                // 4. 获取上下文并请求大模型
-                string context = this.GetTextRange(0, currentPos);
-                if (string.IsNullOrWhiteSpace(context)) return;
-
-                string aiResponse = await FetchAiSuggestionAsync(context, token);
-
-                if (token.IsCancellationRequested || string.IsNullOrWhiteSpace(aiResponse)) return;
-
-                // 5. 安全展示幽灵文本 (确保在 UI 线程)
-                if (this.InvokeRequired)
-                {
-                    this.Invoke(new Action(() => DisplayGhostSuggestion(aiResponse)));
-                }
-                else
-                {
-                    DisplayGhostSuggestion(aiResponse);
-                }
-            }
-            catch (TaskCanceledException) { }
-            catch (Exception) { /* Ignore other exceptions */ }
-        }
-
-        private async Task<string> FetchAiSuggestionAsync(string context, System.Threading.CancellationToken token)
-        {
-            try
-            {
                 string completion = "";
                 if (ConnectionMode == AiConnectionMode.LocalServer)
                 {
@@ -243,11 +200,31 @@ namespace AiAssistant.UIControls
                         }
                     }
                 }
-                return completion;
+
+                if (token.IsCancellationRequested) return;
+
+                if (!string.IsNullOrWhiteSpace(completion))
+                {
+                    if (this.InvokeRequired)
+                    {
+                        this.Invoke(new Action(() => DisplayGhostSuggestion(completion)));
+                    }
+                    else
+                    {
+                        DisplayGhostSuggestion(completion);
+                    }
+                }
             }
             catch (Exception)
             {
-                return null; // Ignore completion errors
+                // Ignore completion errors
+            }
+            finally
+            {
+                if (this.CallTipActive)
+                {
+                    this.CallTipCancel();
+                }
             }
         }
 
@@ -349,6 +326,15 @@ namespace AiAssistant.UIControls
                         // Let the key press be handled normally after clearing
                         break;
                 }
+            }
+
+            // Manual AI suggestion trigger
+            if (e.Alt && e.KeyCode == Keys.Oem5) // Oem5 is usually backslash '\'
+            {
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+                TriggerAiSuggestion();
+                return;
             }
 
             // Keep focus switching logic

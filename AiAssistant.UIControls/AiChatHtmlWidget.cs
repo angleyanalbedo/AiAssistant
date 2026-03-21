@@ -49,6 +49,12 @@ namespace AiAssistant.UIControls
         th { background-color: #f0f0f0; font-weight: bold; }
         /* 防止表格过宽导致撑破气泡 */
         .msg-ai, .msg-user { overflow-x: auto; }
+        hr {
+            height: 1px;
+            border: none;
+            background-color: #E5E7EB; /* 现代的浅灰实线 */
+            margin: 16px 0; /* 上下留出呼吸空间 */
+        }
     </style>
 </head>
 <body>

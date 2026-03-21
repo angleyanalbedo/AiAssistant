@@ -3,12 +3,14 @@ using Newtonsoft.Json;
 using System;
 using System.Drawing;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace AiAssistant.UIControls
 {
+    [ComVisible(true)]
     public class AiChatHtmlWidget : UserControl
     {
         public event EventHandler<InsertCodeEventArgs> OnInsertCodeRequested;
@@ -35,13 +37,16 @@ namespace AiAssistant.UIControls
 <head>
     <meta http-equiv='X-UA-Compatible' content='IE=edge' />
     <meta charset='UTF-8'>
+    <link rel=""stylesheet"" href=""https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.3/styles/github.min.css"">
+    <script src=""https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.3/highlight.min.js""></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; margin: 0; padding: 10px; background-color: #F0F0F0; overflow-y: scroll; }
         #chat-container { display: flex; flex-direction: column; }
         .msg { max-width: 80%; padding: 10px 15px; margin-bottom: 10px; border-radius: 15px; line-height: 1.5; word-wrap: break-word; }
         .msg-user { align-self: flex-end; background-color: #DCF8C6; color: #000; }
         .msg-ai { align-self: flex-start; background-color: #FFF; color: #000; border: 1px solid #EAEAEA; }
-        pre { background-color: #F4F4F4; border: 1px solid #DDD; border-radius: 5px; padding: 10px; font-family: Consolas, 'Courier New', monospace; white-space: pre-wrap; word-wrap: break-word; }
+        pre { position: relative; background-color: #F4F4F4; border: 1px solid #DDD; border-radius: 5px; padding: 10px; font-family: Consolas, 'Courier New', monospace; white-space: pre-wrap; word-wrap: break-word; }
+        .insert-btn { position: absolute; top: 5px; right: 5px; padding: 4px 8px; cursor: pointer; background: #fff; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; }
         code { font-family: Consolas, 'Courier New', monospace; }
         p { margin: 0 0 10px 0; }
         p:last-child { margin-bottom: 0; }
@@ -57,6 +62,61 @@ namespace AiAssistant.UIControls
             margin: 16px 0; /* 上下留出呼吸空间 */
         }
     </style>
+    <script>
+        function enhanceAndScroll() {
+            // 1. Trigger highlighting
+            hljs.highlightAll();
+
+            // 2. Add insert buttons to code blocks
+            var blocks = document.getElementsByTagName('pre');
+            for (var i = 0; i < blocks.length; i++) {
+                var block = blocks[i];
+                if (block.getAttribute('data-btn-added') === 'true') continue;
+                block.setAttribute('data-btn-added', 'true');
+
+                var btn = document.createElement('button');
+                btn.innerText = '插入光标处';
+                btn.className = 'insert-btn';
+
+                // Closure to handle click event correctly
+                (function(currentBlock, currentBtn) {
+                    currentBtn.onclick = function() {
+                        var codeNode = currentBlock.getElementsByTagName('code')[0];
+                        var codeText = codeNode.innerText || codeNode.textContent; // IE-compatible text retrieval
+
+                        // Call C# method via window.external
+                        window.external.JsInvokeInsertCode(codeText);
+
+                        currentBtn.innerText = '已插入!';
+                        setTimeout(function() { currentBtn.innerText = '插入光标处'; }, 2000);
+                    };
+                })(block, btn);
+
+                block.appendChild(btn);
+            }
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        function appendBubble(role, htmlContent, id) {
+            var container = document.getElementById('chat-container');
+            if (!container) return;
+
+            var newBubble = document.createElement('div');
+            newBubble.id = id;
+            newBubble.className = 'msg msg-' + role;
+            newBubble.innerHTML = htmlContent;
+            container.appendChild(newBubble);
+            enhanceAndScroll();
+        }
+
+        function updateBubble(id, htmlContent) {
+            var bubble = document.getElementById(id);
+            if (bubble) {
+                bubble.innerHTML = htmlContent;
+                enhanceAndScroll();
+            }
+        }
+    </script>
 </head>
 <body>
     <div id='chat-container'></div>
@@ -145,6 +205,7 @@ namespace AiAssistant.UIControls
             _webBrowser.IsWebBrowserContextMenuEnabled = false;
             _webBrowser.AllowWebBrowserDrop = false;
             _webBrowser.ScriptErrorsSuppressed = true;
+            _webBrowser.ObjectForScripting = this;
 
             // Main Control
             this.Controls.Add(_webBrowser);
@@ -165,7 +226,7 @@ namespace AiAssistant.UIControls
             AppendMessage("user", message);
             _inputTextBox.Clear();
 
-            var thinkingMessageDiv = AppendMessage("ai", "思考中...");
+            var thinkingMessageId = AppendMessage("ai", "思考中...");
 
             try
             {
@@ -220,11 +281,11 @@ namespace AiAssistant.UIControls
                     }
                 }
 
-                UpdateMessage(thinkingMessageDiv, responseText);
+                UpdateMessage(thinkingMessageId, responseText);
             }
             catch (Exception ex)
             {
-                UpdateMessage(thinkingMessageDiv, $"出现错误: {ex.Message}");
+                UpdateMessage(thinkingMessageId, $"出现错误: {ex.Message}");
             }
             finally
             {
@@ -234,47 +295,39 @@ namespace AiAssistant.UIControls
             }
         }
 
-        public HtmlElement AppendMessage(string role, string markdownText)
+        public string AppendMessage(string role, string markdownText)
         {
+            if (_webBrowser.Document == null) return null;
+
             if (_webBrowser.InvokeRequired)
             {
-                return (HtmlElement)_webBrowser.Invoke(new Func<string, string, HtmlElement>(AppendMessage), role, markdownText);
+                return (string)_webBrowser.Invoke(new Func<string, string, string>(AppendMessage), role, markdownText);
             }
 
-            var container = _webBrowser.Document?.GetElementById("chat-container");
-            if (container == null) return null;
-
+            var messageId = "msg-" + Guid.NewGuid().ToString("N");
             var htmlContent = MarkdownRenderHelper.ConvertToHtml(markdownText);
-            var cssClass = role == "user" ? "msg-user" : "msg-ai";
-            
-            var newBubble = _webBrowser.Document.CreateElement("div");
-            newBubble.SetAttribute("className", $"msg {cssClass}");
-            newBubble.InnerHtml = htmlContent;
-            
-            container.AppendChild(newBubble);
-            _webBrowser.Document.Window.ScrollTo(0, container.ScrollRectangle.Height);
-
-            return newBubble;
+            _webBrowser.Document.InvokeScript("appendBubble", new object[] { role, htmlContent, messageId });
+            return messageId;
         }
 
-        private void UpdateMessage(HtmlElement elementToUpdate, string newMarkdownText)
+        private void UpdateMessage(string messageId, string newMarkdownText)
         {
-            if (elementToUpdate == null) return;
+            if (string.IsNullOrEmpty(messageId) || _webBrowser.Document == null) return;
 
             if (_webBrowser.InvokeRequired)
             {
-                _webBrowser.Invoke(new Action(() => UpdateMessage(elementToUpdate, newMarkdownText)));
+                _webBrowser.Invoke(new Action(() => UpdateMessage(messageId, newMarkdownText)));
                 return;
             }
             
             var htmlContent = MarkdownRenderHelper.ConvertToHtml(newMarkdownText);
-            elementToUpdate.InnerHtml = htmlContent;
+            _webBrowser.Document.InvokeScript("updateBubble", new object[] { messageId, htmlContent });
+        }
 
-            var container = _webBrowser.Document?.GetElementById("chat-container");
-            if (container != null)
-            {
-                _webBrowser.Document.Window.ScrollTo(0, container.ScrollRectangle.Height);
-            }
+        public void JsInvokeInsertCode(string code)
+        {
+            // This method is called from JavaScript
+            OnInsertCodeRequested?.Invoke(this, new InsertCodeEventArgs { Code = code, ReplaceSelection = false });
         }
 
         public void SendExternalMessage(string message)

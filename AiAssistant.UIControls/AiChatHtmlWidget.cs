@@ -3,6 +3,12 @@ using Newtonsoft.Json;
 using System;
 using System.Drawing;
 using System.Net.Http;
+using AiAssistant.UIControls.Utils;
+using FontAwesome.Sharp;
+using Newtonsoft.Json;
+using System;
+using System.Drawing;
+using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,13 +20,14 @@ namespace AiAssistant.UIControls
     public class AiChatHtmlWidget : UserControl
     {
         public event EventHandler<InsertCodeEventArgs> OnInsertCodeRequested;
+        public event EventHandler OnFocusEditorRequested;
 
         private WebBrowser _webBrowser;
         private TextBox _inputTextBox;
-        private Button _sendButton;
+        private IconButton _sendButton;
+        private IconButton _clearButton;
         private Panel _inputAreaPanel;
-        private Panel _topBorderPanel;
-        private const string PlaceholderText = "输入消息...";
+        private const string PlaceholderText = "输入测绘问题...";
 
         private static readonly HttpClient _httpClient = new HttpClient();
 
@@ -137,60 +144,74 @@ namespace AiAssistant.UIControls
         {
             _webBrowser = new WebBrowser();
             _inputTextBox = new TextBox();
-            _sendButton = new Button();
+            _sendButton = new IconButton();
+            _clearButton = new IconButton();
             _inputAreaPanel = new Panel();
-            _topBorderPanel = new Panel();
+            var containedInputPanel = new Panel();
+            var topPaddingPanel = new Panel();
 
             _inputAreaPanel.SuspendLayout();
+            containedInputPanel.SuspendLayout();
             this.SuspendLayout();
 
-            // Input Area Panel
+            // --- Overall Input Area Container ---
             _inputAreaPanel.Dock = DockStyle.Bottom;
-            _inputAreaPanel.Height = 70;
-            _inputAreaPanel.Padding = new Padding(5);
+            _inputAreaPanel.Height = 75;
             _inputAreaPanel.BackColor = Color.White;
-            _inputAreaPanel.Controls.Add(_topBorderPanel);
-            _inputAreaPanel.Controls.Add(_inputTextBox);
-            _inputAreaPanel.Controls.Add(_sendButton);
+            _inputAreaPanel.Padding = new Padding(0, 0, 10, 10);
 
-            // Top Border
-            _topBorderPanel.Dock = DockStyle.Top;
-            _topBorderPanel.Height = 1;
-            _topBorderPanel.BackColor = Color.LightGray;
+            // --- Top Padding Panel ---
+            topPaddingPanel.Dock = DockStyle.Top;
+            topPaddingPanel.Height = 10;
+            topPaddingPanel.BackColor = Color.White;
 
-            // Send Button
-            _sendButton.Dock = DockStyle.Right;
-            _sendButton.Width = 70;
-            _sendButton.Text = "发送";
+            // --- Clear History Button ---
+            _clearButton.IconChar = IconChar.TrashAlt;
+            _clearButton.IconSize = 18;
+            _clearButton.IconColor = Color.Gray;
+            _clearButton.FlatStyle = FlatStyle.Flat;
+            _clearButton.FlatAppearance.BorderSize = 0;
+            _clearButton.BackColor = Color.Transparent;
+            _clearButton.ForeColor = Color.Gray;
+            _clearButton.Text = "清空历史";
+            _clearButton.ImageAlign = ContentAlignment.MiddleLeft;
+            _clearButton.TextAlign = ContentAlignment.MiddleRight;
+            _clearButton.Width = 80;
+            _clearButton.Dock = DockStyle.Left;
+            _clearButton.Click += (s, e) => { /* No history management in this widget */ };
+            _clearButton.MouseEnter += (s, e) => { _clearButton.ForeColor = Color.DarkGray; _clearButton.IconColor = Color.DarkGray; };
+            _clearButton.MouseLeave += (s, e) => { _clearButton.ForeColor = Color.Gray; _clearButton.IconColor = Color.Gray; };
+
+            // --- Send Button ---
+            _sendButton.IconChar = IconChar.PaperPlane;
+            _sendButton.IconSize = 22;
+            _sendButton.IconColor = Color.White;
             _sendButton.FlatStyle = FlatStyle.Flat;
             _sendButton.FlatAppearance.BorderSize = 0;
             _sendButton.BackColor = Color.FromArgb(0, 120, 215);
             _sendButton.ForeColor = Color.White;
+            _sendButton.Text = "";
+            _sendButton.Width = 60;
+            _sendButton.Dock = DockStyle.Right;
             _sendButton.Click += async (s, e) => await SendMessageAsync();
+            _sendButton.MouseEnter += (s, e) => { _sendButton.BackColor = Color.FromArgb(0, 100, 200); };
+            _sendButton.MouseLeave += (s, e) => { _sendButton.BackColor = Color.FromArgb(0, 120, 215); };
 
-            // Input TextBox
+            // --- Contained Input TextBox ---
+            containedInputPanel.Dock = DockStyle.Fill;
+            containedInputPanel.BackColor = Color.FromArgb(245, 245, 245);
+            containedInputPanel.Padding = new Padding(8, 5, 8, 5);
+            containedInputPanel.Controls.Add(_inputTextBox);
+
             _inputTextBox.Multiline = true;
             _inputTextBox.BorderStyle = BorderStyle.None;
             _inputTextBox.Dock = DockStyle.Fill;
+            _inputTextBox.BackColor = Color.FromArgb(245, 245, 245);
             _inputTextBox.Font = new Font("微软雅黑", 10F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(134)));
             _inputTextBox.Text = PlaceholderText;
             _inputTextBox.ForeColor = Color.Gray;
-            _inputTextBox.Enter += (s, e) =>
-            {
-                if (_inputTextBox.Text == PlaceholderText)
-                {
-                    _inputTextBox.Text = "";
-                    _inputTextBox.ForeColor = Color.Black;
-                }
-            };
-            _inputTextBox.Leave += (s, e) =>
-            {
-                if (string.IsNullOrWhiteSpace(_inputTextBox.Text))
-                {
-                    _inputTextBox.Text = PlaceholderText;
-                    _inputTextBox.ForeColor = Color.Gray;
-                }
-            };
+            _inputTextBox.Enter += (s, e) => { if (_inputTextBox.Text == PlaceholderText) { _inputTextBox.Text = ""; _inputTextBox.ForeColor = Color.Black; } };
+            _inputTextBox.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(_inputTextBox.Text)) { _inputTextBox.Text = PlaceholderText; _inputTextBox.ForeColor = Color.Gray; } };
             _inputTextBox.KeyDown += (s, e) =>
             {
                 if (e.KeyCode == Keys.Enter && e.Modifiers == Keys.None)
@@ -198,18 +219,32 @@ namespace AiAssistant.UIControls
                     e.SuppressKeyPress = true;
                     _sendButton.PerformClick();
                 }
+                else if (e.KeyCode == Keys.Escape)
+                {
+                    e.SuppressKeyPress = true;
+                    OnFocusEditorRequested?.Invoke(this, EventArgs.Empty);
+                }
             };
 
-            // WebBrowser
+            // --- Assemble Input Area ---
+            _inputAreaPanel.Controls.Add(containedInputPanel);
+            _inputAreaPanel.Controls.Add(_clearButton);
+            _inputAreaPanel.Controls.Add(_sendButton);
+            _inputAreaPanel.Controls.Add(topPaddingPanel);
+
+            // --- WebBrowser ---
             _webBrowser.Dock = DockStyle.Fill;
             _webBrowser.IsWebBrowserContextMenuEnabled = false;
             _webBrowser.AllowWebBrowserDrop = false;
             _webBrowser.ScriptErrorsSuppressed = true;
             _webBrowser.ObjectForScripting = this;
 
-            // Main Control
+            // --- Main Control Assembly ---
             this.Controls.Add(_webBrowser);
             this.Controls.Add(_inputAreaPanel);
+
+            containedInputPanel.ResumeLayout(false);
+            containedInputPanel.PerformLayout();
             _inputAreaPanel.ResumeLayout(false);
             _inputAreaPanel.PerformLayout();
             this.ResumeLayout(false);
@@ -218,7 +253,7 @@ namespace AiAssistant.UIControls
         private async Task SendMessageAsync()
         {
             var message = _inputTextBox.Text.Trim();
-            if (string.IsNullOrEmpty(message) || message == PlaceholderText) return;
+            if (string.IsNullOrEmpty(message) || (_inputTextBox.Text == PlaceholderText && _inputTextBox.ForeColor == Color.Gray)) return;
 
             _sendButton.Enabled = false;
             _inputTextBox.Enabled = false;
@@ -349,8 +384,8 @@ namespace AiAssistant.UIControls
             {
                 _inputTextBox?.Dispose();
                 _sendButton?.Dispose();
+                _clearButton?.Dispose();
                 _inputAreaPanel?.Dispose();
-                _topBorderPanel?.Dispose();
                 _webBrowser?.Dispose();
             }
             base.Dispose(disposing);

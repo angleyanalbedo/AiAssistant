@@ -2,4 +2,5 @@
   <Project Path="AiAssistant.Server\AiAssistant.Server.csproj"/>
   <Project Path="AiAssistant.UIControls\AiAssistant.UIControls.csproj"/>
   <Project Path="AiAssistant.UITester\AiAssistant.UITester.csproj"/>
+  <Project Path="AiAssistant.WinFormsClient\AiAssistant.WinFormsClient.csproj"/>
 </Solution>

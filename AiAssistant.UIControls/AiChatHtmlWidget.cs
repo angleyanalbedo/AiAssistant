@@ -11,10 +11,19 @@ using System.Windows.Forms;
 
 namespace AiAssistant.UIControls
 {
+    /// <summary>
+    /// 一个基于 IE WebBrowser 的兼容性聊天控件，用于在缺少 WebView2 环境的旧系统上提供基础聊天功能。
+    /// </summary>
     [ComVisible(true)]
     public class AiChatHtmlWidget : UserControl
     {
+        /// <summary>
+        /// 当用户点击代码块中的“插入”按钮时触发。
+        /// </summary>
         public event EventHandler<InsertCodeEventArgs> OnInsertCodeRequested;
+        /// <summary>
+        /// 当用户在输入框中按下 Escape 键时触发，请求将焦点切换回主编辑器。
+        /// </summary>
         public event EventHandler OnFocusEditorRequested;
 
         private WebBrowser _webBrowser;
@@ -28,11 +37,29 @@ namespace AiAssistant.UIControls
         private System.Collections.Generic.List<object> _messageHistory = new System.Collections.Generic.List<object>();
 
         // API Properties
+        /// <summary>
+        /// 获取或设置发送给 AI 模型的系统提示。
+        /// </summary>
         public string SystemPrompt { get; set; } = "你是一个专业的数据处理与测绘工程AI助手。请给出准确、专业的回答。";
+        /// <summary>
+        /// 获取或设置连接模式（本地服务器或直连）。
+        /// </summary>
         public AiConnectionMode ConnectionMode { get; set; } = AiConnectionMode.LocalServer;
+        /// <summary>
+        /// 获取或设置本地服务器的 API 地址。
+        /// </summary>
         public string ServerApiUrl { get; set; } = "http://localhost:5000/api/chat";
+        /// <summary>
+        /// 获取或设置直连 OpenAI 兼容 API 的基础 URL。
+        /// </summary>
         public string DirectApiBaseUrl { get; set; } = "https://api.openai.com/v1";
+        /// <summary>
+        /// 获取或设置直连 API 所需的密钥。
+        /// </summary>
         public string DirectApiKey { get; set; } = "";
+        /// <summary>
+        /// 获取或设置直连 API 使用的模型名称。
+        /// </summary>
         public string DirectApiModel { get; set; } = "gpt-3.5-turbo";
 
         private readonly string _htmlTemplate = @"
@@ -127,6 +154,9 @@ namespace AiAssistant.UIControls
 </body>
 </html>";
 
+        /// <summary>
+        /// 初始化 AiChatHtmlWidget 控件的新实例。
+        /// </summary>
         public AiChatHtmlWidget()
         {
             InitializeComponent();
@@ -137,6 +167,9 @@ namespace AiAssistant.UIControls
             };
         }
 
+        /// <summary>
+        /// 清空聊天历史记录并重置视图。
+        /// </summary>
         public void ClearHistory()
         {
             _messageHistory.Clear();
@@ -332,6 +365,12 @@ namespace AiAssistant.UIControls
             }
         }
 
+        /// <summary>
+        /// 在聊天视图中追加一个新的消息气泡。
+        /// </summary>
+        /// <param name="role">发送者角色，'user' 或 'ai'。</param>
+        /// <param name="markdownText">Markdown 格式的消息内容。</param>
+        /// <returns>新消息气泡的唯一 ID。</returns>
         public string AppendMessage(string role, string markdownText)
         {
             if (_webBrowser.Document == null) return null;
@@ -361,12 +400,20 @@ namespace AiAssistant.UIControls
             _webBrowser.Document.InvokeScript("updateBubble", new object[] { messageId, htmlContent });
         }
 
+        /// <summary>
+        /// 由 JavaScript 调用，用于触发代码插入事件。
+        /// </summary>
+        /// <param name="code">从网页中提取的代码文本。</param>
         public void JsInvokeInsertCode(string code)
         {
             // This method is called from JavaScript
             OnInsertCodeRequested?.Invoke(this, new InsertCodeEventArgs { Code = code, ReplaceSelection = false });
         }
 
+        /// <summary>
+        /// 从外部源发送消息到聊天窗口，模拟用户输入。
+        /// </summary>
+        /// <param name="message">要发送的消息文本。</param>
         public void SendExternalMessage(string message)
         {
             if (this.InvokeRequired)

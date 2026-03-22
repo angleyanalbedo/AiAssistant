@@ -8,6 +8,9 @@ using System.Windows.Forms;
 
 namespace AiAssistant.UIControls
 {
+    /// <summary>
+    /// 一个基于 RichTextBox 的基础 AI 聊天控件，用于简单的问答交互。
+    /// </summary>
     public class AiChatWidget : UserControl
     {
         private RichTextBox _chatHistoryRichTextBox;
@@ -15,12 +18,30 @@ namespace AiAssistant.UIControls
         private Button _sendButton;
         private static readonly HttpClient _httpClient = new HttpClient();
 
+        /// <summary>
+        /// 获取或设置本地服务器的 API 地址。
+        /// </summary>
         public string ServerApiUrl { get; set; } = "http://localhost:5000/api/chat";
+        /// <summary>
+        /// 获取或设置连接模式（本地服务器或直连）。
+        /// </summary>
         public AiConnectionMode ConnectionMode { get; set; } = AiConnectionMode.LocalServer;
+        /// <summary>
+        /// 获取或设置直连 OpenAI 兼容 API 的基础 URL。
+        /// </summary>
         public string DirectApiBaseUrl { get; set; } = "https://api.openai.com/v1";
+        /// <summary>
+        /// 获取或设置直连 API 所需的密钥。
+        /// </summary>
         public string DirectApiKey { get; set; } = "";
+        /// <summary>
+        /// 获取或设置直连 API 使用的模型名称。
+        /// </summary>
         public string DirectApiModel { get; set; } = "gpt-3.5-turbo";
 
+        /// <summary>
+        /// 初始化 AiChatWidget 控件的新实例。
+        /// </summary>
         public AiChatWidget()
         {
             this.Font = new Font("微软雅黑", 10F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(134)));

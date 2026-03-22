@@ -9,6 +9,9 @@ using System.Windows.Forms;
 
 namespace AiAssistant.UIControls
 {
+    /// <summary>
+    /// 一个基于 ScintillaNET 的智能文本框，提供基础的 AI 代码补全（幽灵文本）功能。
+    /// </summary>
     public class AiAutoCompleteTextBox : Scintilla
     {
         private static readonly HttpClient _httpClient = new HttpClient();
@@ -18,8 +21,14 @@ namespace AiAssistant.UIControls
         private bool _isInternalChange = false;
         private const int GHOST_TEXT_STYLE = Style.Default + 1; // Use a style not used by lexers
 
+        /// <summary>
+        /// 定义编辑器支持的编程语言。
+        /// </summary>
         public enum CodeLanguage { PlainText, CSharp, ST }
         private CodeLanguage _currentLanguage = CodeLanguage.PlainText;
+        /// <summary>
+        /// 获取或设置编辑器的当前编程语言，这将影响语法高亮。
+        /// </summary>
         public CodeLanguage CurrentLanguage
         {
             get { return _currentLanguage; }
@@ -30,13 +39,34 @@ namespace AiAssistant.UIControls
             }
         }
 
+        /// <summary>
+        /// 获取或设置本地服务器的补全 API 地址。
+        /// </summary>
         public string ServerApiUrl { get; set; } = "http://localhost:5000/api/completion";
+        /// <summary>
+        /// 获取或设置 AI 连接模式（本地服务器或直连）。
+        /// </summary>
         public AiConnectionMode ConnectionMode { get; set; } = AiConnectionMode.LocalServer;
+        /// <summary>
+        /// 获取或设置直连 OpenAI 兼容 API 的基础 URL。
+        /// </summary>
         public string DirectApiBaseUrl { get; set; } = "https://api.openai.com/v1";
+        /// <summary>
+        /// 获取或设置直连 API 所需的密钥。
+        /// </summary>
         public string DirectApiKey { get; set; } = "";
+        /// <summary>
+        /// 获取或设置直连 API 使用的模型名称。
+        /// </summary>
         public string DirectApiModel { get; set; } = "gpt-3.5-turbo";
+        /// <summary>
+        /// 获取或设置发送给 AI 模型的系统提示，用于代码补全场景。
+        /// </summary>
         public string SystemPrompt { get; set; } = "你是一个代码补全助手，只输出补全的代码，不要任何解释";
 
+        /// <summary>
+        /// 初始化 AiAutoCompleteTextBox 控件的新实例。
+        /// </summary>
         public AiAutoCompleteTextBox()
         {
             // Basic Scintilla setup

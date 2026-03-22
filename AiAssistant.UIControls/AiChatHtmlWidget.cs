@@ -218,9 +218,9 @@ namespace AiAssistant.UIControls
             _clearButton.TextAlign = ContentAlignment.MiddleRight;
             _clearButton.Width = 80;
             _clearButton.Dock = DockStyle.Left;
-            _clearButton.Click += (s, e) => ClearHistory();
-            _clearButton.MouseEnter += (s, e) => { _clearButton.ForeColor = Color.DarkGray; _clearButton.IconColor = Color.DarkGray; };
-            _clearButton.MouseLeave += (s, e) => { _clearButton.ForeColor = Color.Gray; _clearButton.IconColor = Color.Gray; };
+            _clearButton.Click += new System.EventHandler(this._clearButton_Click);
+            _clearButton.MouseEnter += new System.EventHandler(this._clearButton_MouseEnter);
+            _clearButton.MouseLeave += new System.EventHandler(this._clearButton_MouseLeave);
 
             // --- Send Button ---
             _sendButton.IconChar = IconChar.PaperPlane;
@@ -233,9 +233,9 @@ namespace AiAssistant.UIControls
             _sendButton.Text = "";
             _sendButton.Width = 60;
             _sendButton.Dock = DockStyle.Right;
-            _sendButton.Click += async (s, e) => await SendMessageAsync();
-            _sendButton.MouseEnter += (s, e) => { _sendButton.BackColor = Color.FromArgb(0, 100, 200); };
-            _sendButton.MouseLeave += (s, e) => { _sendButton.BackColor = Color.FromArgb(0, 120, 215); };
+            _sendButton.Click += new System.EventHandler(this._sendButton_Click);
+            _sendButton.MouseEnter += new System.EventHandler(this._sendButton_MouseEnter);
+            _sendButton.MouseLeave += new System.EventHandler(this._sendButton_MouseLeave);
 
             // --- Contained Input TextBox ---
             containedInputPanel.Dock = DockStyle.Fill;
@@ -250,21 +250,9 @@ namespace AiAssistant.UIControls
             _inputTextBox.Font = new Font("微软雅黑", 10F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(134)));
             _inputTextBox.Text = PlaceholderText;
             _inputTextBox.ForeColor = Color.Gray;
-            _inputTextBox.Enter += (s, e) => { if (_inputTextBox.Text == PlaceholderText) { _inputTextBox.Text = ""; _inputTextBox.ForeColor = Color.Black; } };
-            _inputTextBox.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(_inputTextBox.Text)) { _inputTextBox.Text = PlaceholderText; _inputTextBox.ForeColor = Color.Gray; } };
-            _inputTextBox.KeyDown += (s, e) =>
-            {
-                if (e.KeyCode == Keys.Enter && e.Modifiers == Keys.None)
-                {
-                    e.SuppressKeyPress = true;
-                    _sendButton.PerformClick();
-                }
-                else if (e.KeyCode == Keys.Escape)
-                {
-                    e.SuppressKeyPress = true;
-                    OnFocusEditorRequested?.Invoke(this, EventArgs.Empty);
-                }
-            };
+            _inputTextBox.Enter += new System.EventHandler(this._inputTextBox_Enter);
+            _inputTextBox.Leave += new System.EventHandler(this._inputTextBox_Leave);
+            _inputTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this._inputTextBox_KeyDown);
 
             // --- Assemble Input Area ---
             _inputAreaPanel.Controls.Add(containedInputPanel);
@@ -288,6 +276,70 @@ namespace AiAssistant.UIControls
             _inputAreaPanel.ResumeLayout(false);
             _inputAreaPanel.PerformLayout();
             this.ResumeLayout(false);
+        }
+
+        private void _clearButton_Click(object sender, EventArgs e)
+        {
+            ClearHistory();
+        }
+
+        private void _clearButton_MouseEnter(object sender, EventArgs e)
+        {
+            _clearButton.ForeColor = Color.DarkGray;
+            _clearButton.IconColor = Color.DarkGray;
+        }
+
+        private void _clearButton_MouseLeave(object sender, EventArgs e)
+        {
+            _clearButton.ForeColor = Color.Gray;
+            _clearButton.IconColor = Color.Gray;
+        }
+
+        private async void _sendButton_Click(object sender, EventArgs e)
+        {
+            await SendMessageAsync();
+        }
+
+        private void _sendButton_MouseEnter(object sender, EventArgs e)
+        {
+            _sendButton.BackColor = Color.FromArgb(0, 100, 200);
+        }
+
+        private void _sendButton_MouseLeave(object sender, EventArgs e)
+        {
+            _sendButton.BackColor = Color.FromArgb(0, 120, 215);
+        }
+
+        private void _inputTextBox_Enter(object sender, EventArgs e)
+        {
+            if (_inputTextBox.Text == PlaceholderText)
+            {
+                _inputTextBox.Text = "";
+                _inputTextBox.ForeColor = Color.Black;
+            }
+        }
+
+        private void _inputTextBox_Leave(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(_inputTextBox.Text))
+            {
+                _inputTextBox.Text = PlaceholderText;
+                _inputTextBox.ForeColor = Color.Gray;
+            }
+        }
+
+        private void _inputTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter && e.Modifiers == Keys.None)
+            {
+                e.SuppressKeyPress = true;
+                _sendButton.PerformClick();
+            }
+            else if (e.KeyCode == Keys.Escape)
+            {
+                e.SuppressKeyPress = true;
+                OnFocusEditorRequested?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         private async Task SendMessageAsync()

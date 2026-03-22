@@ -232,7 +232,7 @@ namespace AiAssistant.UIControls
             _clearButton.FlatAppearance.BorderSize = 0;
             _clearButton.BackColor = Color.FromArgb(224, 224, 224);
             _clearButton.ForeColor = Color.Black;
-            _clearButton.Click += (s, e) => ClearHistory();
+            _clearButton.Click += new System.EventHandler(this._clearButton_Click);
 
             // Send Button
             _sendButton.Dock = DockStyle.Right;
@@ -242,7 +242,7 @@ namespace AiAssistant.UIControls
             _sendButton.FlatAppearance.BorderSize = 0;
             _sendButton.BackColor = Color.FromArgb(0, 120, 215);
             _sendButton.ForeColor = Color.White;
-            _sendButton.Click += async (s, e) => await SendMessageAsync();
+            _sendButton.Click += new System.EventHandler(this._sendButton_Click);
 
             // Input TextBox
             _inputTextBox.Multiline = true;
@@ -251,12 +251,9 @@ namespace AiAssistant.UIControls
             _inputTextBox.Font = new Font("微软雅黑", 10F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(134)));
             _inputTextBox.Text = PlaceholderText;
             _inputTextBox.ForeColor = Color.Gray;
-            _inputTextBox.Enter += (s, e) => { if (_inputTextBox.Text == PlaceholderText) { _inputTextBox.Text = ""; _inputTextBox.ForeColor = Color.Black; } };
-            _inputTextBox.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(_inputTextBox.Text)) { _inputTextBox.Text = PlaceholderText; _inputTextBox.ForeColor = Color.Gray; } };
-            _inputTextBox.KeyDown += (s, e) => {
-                if (e.KeyCode == Keys.Enter && e.Modifiers == Keys.None) { e.SuppressKeyPress = true; _sendButton.PerformClick(); }
-                if (e.KeyCode == Keys.Escape) { e.SuppressKeyPress = true; OnFocusEditorRequested?.Invoke(this, EventArgs.Empty); }
-            };
+            _inputTextBox.Enter += new System.EventHandler(this._inputTextBox_Enter);
+            _inputTextBox.Leave += new System.EventHandler(this._inputTextBox_Leave);
+            _inputTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this._inputTextBox_KeyDown);
 
             // WebView2
             _chatWebView.Dock = DockStyle.Fill;
@@ -268,6 +265,48 @@ namespace AiAssistant.UIControls
             _inputAreaPanel.ResumeLayout(false);
             _inputAreaPanel.PerformLayout();
             this.ResumeLayout(false);
+        }
+
+        private void _clearButton_Click(object sender, EventArgs e)
+        {
+            ClearHistory();
+        }
+
+        private async void _sendButton_Click(object sender, EventArgs e)
+        {
+            await SendMessageAsync();
+        }
+
+        private void _inputTextBox_Enter(object sender, EventArgs e)
+        {
+            if (_inputTextBox.Text == PlaceholderText)
+            {
+                _inputTextBox.Text = "";
+                _inputTextBox.ForeColor = Color.Black;
+            }
+        }
+
+        private void _inputTextBox_Leave(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(_inputTextBox.Text))
+            {
+                _inputTextBox.Text = PlaceholderText;
+                _inputTextBox.ForeColor = Color.Gray;
+            }
+        }
+
+        private void _inputTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter && e.Modifiers == Keys.None)
+            {
+                e.SuppressKeyPress = true;
+                _sendButton.PerformClick();
+            }
+            if (e.KeyCode == Keys.Escape)
+            {
+                e.SuppressKeyPress = true;
+                OnFocusEditorRequested?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         private void OnWebViewReady(object sender, Microsoft.Web.WebView2.Core.CoreWebView2InitializationCompletedEventArgs e)

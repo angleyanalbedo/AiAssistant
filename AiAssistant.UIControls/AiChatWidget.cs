@@ -82,7 +82,7 @@ namespace AiAssistant.UIControls
             var inputPanel = new Panel
             {
                 Dock = DockStyle.Bottom,
-                Height = _userInput.Height + 20,
+                Height = 60,
                 Padding = new Padding(5),
                 BackColor = Color.White
             };

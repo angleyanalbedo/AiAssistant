@@ -38,5 +38,10 @@
     <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\github.min.css" />
+    <EmbeddedResource Include="Resources\highlight.min.js" />
+  </ItemGroup>
+
 
 </Project>

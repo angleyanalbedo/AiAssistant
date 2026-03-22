@@ -67,13 +67,12 @@ namespace AiAssistant.UIControls
         /// </summary>
         public void ClearHistory() { _messageHistory.Clear(); AppendMessage("ai", "上下文已清空，我们可以开始新的对话了。"); }
 
-        private readonly string _htmlTemplate = @"
+        private string _htmlTemplate = @"
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset='UTF-8'>
-    <link rel=""stylesheet"" href=""https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css"">
-    <script src=""https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js""></script>
+    <style>__CSS_PLACEHOLDER__</style>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; margin: 0; padding: 10px; background-color: #F0F0F0; overflow-y: scroll; }
         #chat-container { display: flex; flex-direction: column; gap: 10px; }
@@ -103,7 +102,13 @@ namespace AiAssistant.UIControls
         th { background-color: #f0f0f0; font-weight: bold; }
         hr { height: 1px; border: none; background-color: #E5E7EB; margin: 16px 0; }
     </style>
+</head>
+<body class=""markdown-body"">
+    <div id='chat-container'></div>
+    <script>__JS_PLACEHOLDER__</script>
     <script>
+        document.addEventListener('DOMContentLoaded', () => { hljs.highlightAll(); });
+
         function enhanceCodeBlocks() {
             // 1. Trigger syntax highlighting
             hljs.highlightAll();
@@ -181,9 +186,6 @@ namespace AiAssistant.UIControls
             }
         }
     </script>
-</head>
-<body>
-    <div id='chat-container'></div>
 </body>
 </html>";
 
@@ -193,6 +195,13 @@ namespace AiAssistant.UIControls
         public AiChatWebViewWidget()
         {
             InitializeComponent();
+
+            var css = GetEmbeddedResource("github.min.css");
+            var js = GetEmbeddedResource("highlight.min.js");
+            _htmlTemplate = _htmlTemplate
+                .Replace("__CSS_PLACEHOLDER__", css)
+                .Replace("__JS_PLACEHOLDER__", js);
+
             _chatWebView.EnsureCoreWebView2Async(null);
         }
 
@@ -543,6 +552,21 @@ namespace AiAssistant.UIControls
                 _chatWebView?.Dispose();
             }
             base.Dispose(disposing);
+        }
+
+        private string GetEmbeddedResource(string fileName)
+        {
+            var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+            // 注意：资源路径通常是 [命名空间].[文件夹].[文件名]
+            string resourcePath = "AiAssistant.UIControls.Resources." + fileName;
+            using (var stream = assembly.GetManifestResourceStream(resourcePath))
+            {
+                if (stream == null) return string.Empty;
+                using (var reader = new System.IO.StreamReader(stream, System.Text.Encoding.UTF8))
+                {
+                    return reader.ReadToEnd();
+                }
+            }
         }
     }
 }

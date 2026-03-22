@@ -31,6 +31,7 @@ namespace AiAssistant.UIControls
         private Button _clearButton;
         private Panel _inputAreaPanel;
         private Panel _topBorderPanel;
+        private Label _loadingLabel;
 
         private static readonly HttpClient _httpClient = new HttpClient();
         private bool _isWebViewReady = false;
@@ -202,6 +203,15 @@ namespace AiAssistant.UIControls
                 .Replace("__CSS_PLACEHOLDER__", css)
                 .Replace("__JS_PLACEHOLDER__", js);
 
+            this.Layout += (sender, args) =>
+            {
+                if (_loadingLabel != null && _loadingLabel.Visible)
+                {
+                    _loadingLabel.Left = (this.ClientSize.Width - _loadingLabel.Width) / 2;
+                    _loadingLabel.Top = (this.ClientSize.Height - _inputAreaPanel.Height - _loadingLabel.Height) / 2;
+                }
+            };
+
             _chatWebView.EnsureCoreWebView2Async(null);
         }
 
@@ -213,6 +223,7 @@ namespace AiAssistant.UIControls
             _clearButton = new Button();
             _inputAreaPanel = new Panel();
             _topBorderPanel = new Panel();
+            _loadingLabel = new Label();
 
             _inputAreaPanel.SuspendLayout();
             this.SuspendLayout();
@@ -266,8 +277,18 @@ namespace AiAssistant.UIControls
             // WebView2
             _chatWebView.Dock = DockStyle.Fill;
             _chatWebView.CoreWebView2InitializationCompleted += OnWebViewReady;
+            _chatWebView.Visible = false;
+
+            // Loading Label
+            _loadingLabel.Text = "正在加载...";
+            _loadingLabel.AutoSize = true;
+            _loadingLabel.Font = new Font("微软雅黑", 12F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(134)));
+            _loadingLabel.ForeColor = Color.Gray;
+            _loadingLabel.Anchor = AnchorStyles.None;
+            _loadingLabel.TextAlign = ContentAlignment.MiddleCenter;
 
             // Main Control
+            this.Controls.Add(_loadingLabel);
             this.Controls.Add(_chatWebView);
             this.Controls.Add(_inputAreaPanel);
             _inputAreaPanel.ResumeLayout(false);
@@ -331,9 +352,15 @@ namespace AiAssistant.UIControls
                 _chatWebView.NavigationCompleted += (s, args) => {
                     if (args.IsSuccess)
                     {
+                        _loadingLabel.Visible = false;
+                        _chatWebView.Visible = true;
                         AppendMessage("ai", "你好！我能为你做些什么？");
                     }
                 };
+            }
+            else
+            {
+                _loadingLabel.Text = "WebView2 加载失败。\n请确保已安装 WebView2 Runtime。";
             }
         }
 

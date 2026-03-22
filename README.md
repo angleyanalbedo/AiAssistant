@@ -24,23 +24,24 @@
   * **智能触发器**：内置 `CancellationToken` 机制，彻底解决网络请求竞争导致的补全闪烁。
   * **半手动模式**：拒绝自动补全带来的打扰，仅在用户需要时（快捷键）显灵，稳定可靠。
 
-### 2\. `AiChatHtmlWidget` (双引擎对话框)
+### 2\. `AiChatWebViewWidget` (现代聊天对话框)
 
-具备 Markdown 渲染与流式输出能力的聊天窗口，支持自动降级。
+基于 WebView2 的现代聊天窗口，具备 Markdown 渲染与流式输出能力。
 
-  * **Ghost Text (幽灵文本)**：手动按下 `Alt + \` 唤醒 AI，建议以灰色斜体预览，`Tab` 键一键采纳。
-  * **自适应双引擎**：优先使用 **WebView2**，在无环境的旧机器上自动降级至 **IE11 WebBrowser**，保证 100% 可用。
-  * **Material Design 风格**：扁平化设计，集成 FontAwesome 图标，彻底摆脱 WinForms 的陈旧感。
+  * **现代 Web 体验**：采用 **WebView2** 内核，支持最新的 HTML5/CSS3 标准，性能优异。
+  * **Material Design 风格**：扁平化设计，集成 highlight.js 语法高亮，彻底摆脱 WinForms 的陈旧感。
   * **多轮对话记忆**：内置 Context 队列，支持联系上下文进行连续追问。
   * **流式打字机效果**：支持 SSE 数据流渲染，代码逐字弹出，交互感极佳。
+  * **代码一键插入**：聊天结果中的代码块可一键插入到编辑器光标处。
 
 -----
 
 ## 🚀 快速集成指南
 
-### 1\. 配置编辑器语言与 AI 属性
+### 1\. 配置控件 AI 属性
 
 ```csharp
+// 1.1 配置 AiAutoCompleteEditor
 // 切换为工业 ST 语言模式
 aiEditor.CurrentLanguage = CodeLanguage.ST; 
 
@@ -51,6 +52,16 @@ aiEditor.DirectApiModel = "deepseek-coder";
 
 // 注入专属人设
 aiEditor.SystemPrompt = "你是一个 PLC 编程专家，请只输出严谨的 ST 补全代码。";
+
+// 1.2 配置 AiChatWebViewWidget
+// 配置 API 节点
+aiChat.ConnectionMode = AiConnectionMode.DirectOpenAI; // 或 LocalServer
+aiChat.DirectApiBaseUrl = "https://api.deepseek.com/v1";
+aiChat.DirectApiKey = "sk-xxxxxxxxxxxx";
+aiChat.DirectApiModel = "deepseek-chat";
+
+// 注入专属人设
+aiChat.SystemPrompt = "你是一个全能的编程助手，请提供详细的中文代码解释。";
 ```
 
 ### 2\. 实现控件联动 (解耦设计)
@@ -84,8 +95,8 @@ aiChat.OnFocusEditorRequested += (s, e) => aiEditor.Focus();
 .
 ├── AiAssistant.UIControls/     # 核心控件库 (Target: .NET 4.5)
 │   ├── AiAutoCompleteEditor              # Scintilla 逻辑与幽灵文本实现
-│   ├── AiChatWebViewWidget                   # WebView2/IE 双引擎渲染逻辑
-│   └── Utils/                  # Markdown 渲染器与 LSP 协议定义
+│   ├── AiChatWebViewWidget                   # 基于 WebView2 的现代聊天控件
+│   └── Utils/                  # Markdown 渲染器与事件定义
 ├── AiAssistant.Server/         # 后端网关 (Target: .NET 8.0)
 │   └── Engines/                # 多模型转发引擎 (StandardAi / ClaudeCLI)
 └── AiAssistant.UITester/       # 样例演示程序

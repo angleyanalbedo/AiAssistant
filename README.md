@@ -43,10 +43,12 @@
 1.  **安装 NuGet 包**: 在 Visual Studio 的 NuGet 包管理器中搜索 `AiAssistant.UIControls` 并安装。
 2.  **拖拽控件**: 安装后，`AiAutoCompleteEditor` 和 `AiChatWebViewWidget` 控件将自动出现在工具箱中。将它们拖拽到你的 WinForms 窗体上即可开始使用。
 
-### 1\. 配置控件 AI 属性
+### 1\. 配置 `AiAutoCompleteEditor`
 
+`AiAutoCompleteEditor` 是一个功能强大的代码编辑器，内置了 AI 代码补全功能。
+
+**配置 AI 属性:**
 ```csharp
-// 1.1 配置 AiAutoCompleteEditor
 // 切换为工业 ST 语言模式
 aiEditor.CurrentLanguage = CodeLanguage.ST; 
 
@@ -57,8 +59,19 @@ aiEditor.DirectApiModel = "deepseek-coder";
 
 // 注入专属人设
 aiEditor.SystemPrompt = "你是一个 PLC 编程专家，请只输出严谨的 ST 补全代码。";
+```
 
-// 1.2 配置 AiChatWebViewWidget
+**使用方法:**
+- **触发 AI 补全**: 在编辑器中按下 `Alt + \` 快捷键，即可在光标后生成“幽灵文本”建议。
+- **采纳建议**: 按下 `Tab` 键，即可将灰色建议变为正式代码。
+- **取消建议**: 按下 `Esc` 或其他任意键，即可取消建议。
+
+### 2\. 配置 `AiChatWebViewWidget`
+
+`AiChatWebViewWidget` 是一个独立的聊天窗口，支持 Markdown 渲染和多轮对话。
+
+**配置 AI 属性:**
+```csharp
 // 配置 API 节点
 aiChat.ConnectionMode = AiConnectionMode.DirectOpenAI; // 或 LocalServer
 aiChat.DirectApiBaseUrl = "https://api.deepseek.com/v1";
@@ -69,12 +82,19 @@ aiChat.DirectApiModel = "deepseek-chat";
 aiChat.SystemPrompt = "你是一个全能的编程助手，请提供详细的中文代码解释。";
 ```
 
-### 2\. 实现控件联动 (解耦设计)
+**使用方法:**
+- **用户输入**: 用户可以直接在聊天框底部的输入区输入问题并发送。
+- **程序调用**: 你也可以从代码中调用 `SendExternalMessage` 方法，将预设问题发送到聊天窗口。
+  ```csharp
+  aiChat.SendExternalMessage("请解释一下什么是单例模式。");
+  ```
 
-通过主窗体（Mediator）连接两个控件，实现无缝交互：
+### 3\. 实现控件联动 (高级用法)
+
+通过订阅事件，你可以将两个控件无缝集成，实现类似 VS Code Copilot 的交互体验。
 
 ```csharp
-// 1. 编辑器快捷键触发 AI 聊天
+// 1. 编辑器快捷键触发 AI 聊天 (例如：选中代码后，通过右键菜单“解释代码”)
 aiEditor.OnAiActionRequested += (s, e) => {
     aiChat.SendExternalMessage(e.Prompt);
 };

@@ -38,6 +38,11 @@
 
 ## 🚀 快速集成指南
 
+### 0\. 安装与引用
+
+1.  **安装 NuGet 包**: 在 Visual Studio 的 NuGet 包管理器中搜索 `AiAssistant.UIControls` 并安装。
+2.  **拖拽控件**: 安装后，`AiAutoCompleteTextBox` 和 `AiChatWebViewWidget` 控件将自动出现在工具箱中。将它们拖拽到你的 WinForms 窗体上即可开始使用。
+
 ### 1\. 配置控件 AI 属性
 
 ```csharp

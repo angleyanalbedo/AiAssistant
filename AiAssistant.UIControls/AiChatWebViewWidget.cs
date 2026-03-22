@@ -11,9 +11,18 @@ using System.Windows.Forms;
 
 namespace AiAssistant.UIControls
 {
+    /// <summary>
+    /// 一个基于 WebView2 的现代 WinForms 聊天控件，具备 Markdown 渲染和流式响应能力。
+    /// </summary>
     public class AiChatWebViewWidget : UserControl
     {
+        /// <summary>
+        /// 当用户点击代码块中的“插入”按钮时触发。
+        /// </summary>
         public event EventHandler<InsertCodeEventArgs> OnInsertCodeRequested;
+        /// <summary>
+        /// 当用户在输入框中按下 Escape 键时触发，请求将焦点切换回主编辑器。
+        /// </summary>
         public event EventHandler OnFocusEditorRequested;
 
         private WebView2 _chatWebView;
@@ -29,13 +38,34 @@ namespace AiAssistant.UIControls
         private System.Collections.Generic.List<object> _messageHistory = new System.Collections.Generic.List<object>();
 
         // API Properties
+        /// <summary>
+        /// 获取或设置发送给 AI 模型的系统提示，用于定义其角色和行为。
+        /// </summary>
         public string SystemPrompt { get; set; } = "你是一个专业的AI编程助手。请提供准确、简洁的代码和解释。";
+        /// <summary>
+        /// 获取或设置连接模式，可以是连接本地服务器或直连 OpenAI 兼容的 API。
+        /// </summary>
         public AiConnectionMode ConnectionMode { get; set; } = AiConnectionMode.LocalServer;
+        /// <summary>
+        /// 获取或设置本地服务器的 API 地址。当 ConnectionMode 为 LocalServer 时使用。
+        /// </summary>
         public string ServerApiUrl { get; set; } = "http://localhost:5000/api/chat";
+        /// <summary>
+        /// 获取或设置直连 OpenAI 兼容 API 的基础 URL。
+        /// </summary>
         public string DirectApiBaseUrl { get; set; } = "https://api.openai.com/v1";
+        /// <summary>
+        /// 获取或设置直连 API 所需的密钥。
+        /// </summary>
         public string DirectApiKey { get; set; } = "";
+        /// <summary>
+        /// 获取或设置直连 API 使用的模型名称。
+        /// </summary>
         public string DirectApiModel { get; set; } = "gpt-3.5-turbo";
 
+        /// <summary>
+        /// 清空聊天历史记录，并显示一条确认消息。
+        /// </summary>
         public void ClearHistory() { _messageHistory.Clear(); AppendMessage("ai", "上下文已清空，我们可以开始新的对话了。"); }
 
         private readonly string _htmlTemplate = @"
@@ -158,6 +188,9 @@ namespace AiAssistant.UIControls
 </body>
 </html>";
 
+        /// <summary>
+        /// 初始化 AiChatWebViewWidget 控件的新实例。
+        /// </summary>
         public AiChatWebViewWidget()
         {
             InitializeComponent();
@@ -396,6 +429,12 @@ namespace AiAssistant.UIControls
             }
         }
 
+        /// <summary>
+        /// 在聊天视图中追加一个新的消息气泡。
+        /// </summary>
+        /// <param name="role">发送者角色，'user' 或 'ai'。</param>
+        /// <param name="markdownText">Markdown 格式的消息内容。</param>
+        /// <returns>新消息气泡的唯一 ID。</returns>
         public string AppendMessage(string role, string markdownText)
         {
             if (!_isWebViewReady) return null;
@@ -433,6 +472,10 @@ namespace AiAssistant.UIControls
             }
         }
 
+        /// <summary>
+        /// 从外部源发送消息到聊天窗口，模拟用户输入。
+        /// </summary>
+        /// <param name="message">要发送的消息文本。</param>
         public void SendExternalMessage(string message)
         {
             if (this.InvokeRequired)
@@ -446,6 +489,9 @@ namespace AiAssistant.UIControls
             _sendButton.PerformClick();
         }
 
+        /// <summary>
+        /// 将焦点设置到消息输入框。
+        /// </summary>
         public void FocusInput() { _inputTextBox.Focus(); }
 
         protected override void Dispose(bool disposing)

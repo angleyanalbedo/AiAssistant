@@ -65,14 +65,7 @@ namespace AiAssistant.UIControls
                 Multiline = true,
                 BorderStyle = BorderStyle.None
             };
-            _userInput.KeyDown += async (sender, e) =>
-            {
-                if (e.KeyCode == Keys.Enter && !e.Shift)
-                {
-                    e.SuppressKeyPress = true;
-                    await SendMessageAsync();
-                }
-            };
+            _userInput.KeyDown += new System.Windows.Forms.KeyEventHandler(this._userInput_KeyDown);
 
             _sendButton = new Button
             {
@@ -84,7 +77,7 @@ namespace AiAssistant.UIControls
                 ForeColor = Color.White
             };
             _sendButton.FlatAppearance.BorderSize = 0;
-            _sendButton.Click += async (sender, e) => await SendMessageAsync();
+            _sendButton.Click += new System.EventHandler(this._sendButton_Click);
 
             var inputPanel = new Panel
             {
@@ -99,6 +92,20 @@ namespace AiAssistant.UIControls
 
             this.Controls.Add(_chatHistoryRichTextBox);
             this.Controls.Add(inputPanel);
+        }
+
+        private async void _userInput_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter && !e.Shift)
+            {
+                e.SuppressKeyPress = true;
+                await SendMessageAsync();
+            }
+        }
+
+        private async void _sendButton_Click(object sender, EventArgs e)
+        {
+            await SendMessageAsync();
         }
 
         private async Task SendMessageAsync()

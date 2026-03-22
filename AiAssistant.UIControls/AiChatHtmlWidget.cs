@@ -31,7 +31,6 @@ namespace AiAssistant.UIControls
         private IconButton _sendButton;
         private IconButton _clearButton;
         private Panel _inputAreaPanel;
-        private const string PlaceholderText = "输入测绘问题...";
 
         private static readonly HttpClient _httpClient = new HttpClient();
         private System.Collections.Generic.List<object> _messageHistory = new System.Collections.Generic.List<object>();
@@ -248,7 +247,7 @@ namespace AiAssistant.UIControls
             _inputTextBox.Dock = DockStyle.Fill;
             _inputTextBox.BackColor = Color.FromArgb(245, 245, 245);
             _inputTextBox.Font = new Font("微软雅黑", 10F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(134)));
-            _inputTextBox.Text = PlaceholderText;
+            _inputTextBox.Text = "输入测绘问题...";
             _inputTextBox.ForeColor = Color.Gray;
             _inputTextBox.Enter += new System.EventHandler(this._inputTextBox_Enter);
             _inputTextBox.Leave += new System.EventHandler(this._inputTextBox_Leave);
@@ -312,7 +311,7 @@ namespace AiAssistant.UIControls
 
         private void _inputTextBox_Enter(object sender, EventArgs e)
         {
-            if (_inputTextBox.Text == PlaceholderText)
+            if (_inputTextBox.Text == "输入测绘问题...")
             {
                 _inputTextBox.Text = "";
                 _inputTextBox.ForeColor = Color.Black;
@@ -323,7 +322,7 @@ namespace AiAssistant.UIControls
         {
             if (string.IsNullOrWhiteSpace(_inputTextBox.Text))
             {
-                _inputTextBox.Text = PlaceholderText;
+                _inputTextBox.Text = "输入测绘问题...";
                 _inputTextBox.ForeColor = Color.Gray;
             }
         }
@@ -345,7 +344,7 @@ namespace AiAssistant.UIControls
         private async Task SendMessageAsync()
         {
             var message = _inputTextBox.Text.Trim();
-            if (string.IsNullOrEmpty(message) || (_inputTextBox.Text == PlaceholderText && _inputTextBox.ForeColor == Color.Gray)) return;
+            if (string.IsNullOrEmpty(message) || (_inputTextBox.Text == "输入测绘问题..." && _inputTextBox.ForeColor == Color.Gray)) return;
 
             _sendButton.Enabled = false;
             _inputTextBox.Enabled = false;

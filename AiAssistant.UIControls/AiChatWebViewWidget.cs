@@ -31,7 +31,6 @@ namespace AiAssistant.UIControls
         private Button _clearButton;
         private Panel _inputAreaPanel;
         private Panel _topBorderPanel;
-        private const string PlaceholderText = "输入消息...";
 
         private static readonly HttpClient _httpClient = new HttpClient();
         private bool _isWebViewReady = false;
@@ -249,7 +248,7 @@ namespace AiAssistant.UIControls
             _inputTextBox.BorderStyle = BorderStyle.None;
             _inputTextBox.Dock = DockStyle.Fill;
             _inputTextBox.Font = new Font("微软雅黑", 10F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(134)));
-            _inputTextBox.Text = PlaceholderText;
+            _inputTextBox.Text = "输入消息...";
             _inputTextBox.ForeColor = Color.Gray;
             _inputTextBox.Enter += new System.EventHandler(this._inputTextBox_Enter);
             _inputTextBox.Leave += new System.EventHandler(this._inputTextBox_Leave);
@@ -279,7 +278,7 @@ namespace AiAssistant.UIControls
 
         private void _inputTextBox_Enter(object sender, EventArgs e)
         {
-            if (_inputTextBox.Text == PlaceholderText)
+            if (_inputTextBox.Text == "输入消息...")
             {
                 _inputTextBox.Text = "";
                 _inputTextBox.ForeColor = Color.Black;
@@ -290,7 +289,7 @@ namespace AiAssistant.UIControls
         {
             if (string.IsNullOrWhiteSpace(_inputTextBox.Text))
             {
-                _inputTextBox.Text = PlaceholderText;
+                _inputTextBox.Text = "输入消息...";
                 _inputTextBox.ForeColor = Color.Gray;
             }
         }
@@ -353,7 +352,7 @@ namespace AiAssistant.UIControls
         private async Task SendMessageAsync()
         {
             var message = _inputTextBox.Text.Trim();
-            if (string.IsNullOrEmpty(message) || message == PlaceholderText || !_isWebViewReady) return;
+            if (string.IsNullOrEmpty(message) || message == "输入消息..." || !_isWebViewReady) return;
 
             _sendButton.Enabled = false;
             _inputTextBox.Enabled = false;

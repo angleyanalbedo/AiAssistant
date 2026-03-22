@@ -34,6 +34,8 @@ namespace AiAssistant.UIControls
 
         private static readonly HttpClient _httpClient = new HttpClient();
         private System.Collections.Generic.List<object> _messageHistory = new System.Collections.Generic.List<object>();
+        private Panel containedInputPanel;
+        private Panel topPaddingPanel;
 
         // API Properties
         /// <summary>
@@ -181,100 +183,132 @@ namespace AiAssistant.UIControls
 
         private void InitializeComponent()
         {
-            _webBrowser = new WebBrowser();
-            _inputTextBox = new TextBox();
-            _sendButton = new IconButton();
-            _clearButton = new IconButton();
-            _inputAreaPanel = new Panel();
-            var containedInputPanel = new Panel();
-            var topPaddingPanel = new Panel();
-
-            _inputAreaPanel.SuspendLayout();
-            containedInputPanel.SuspendLayout();
+            this._webBrowser = new System.Windows.Forms.WebBrowser();
+            this._inputTextBox = new System.Windows.Forms.TextBox();
+            this._sendButton = new FontAwesome.Sharp.IconButton();
+            this._clearButton = new FontAwesome.Sharp.IconButton();
+            this._inputAreaPanel = new System.Windows.Forms.Panel();
+            this.containedInputPanel = new System.Windows.Forms.Panel();
+            this.topPaddingPanel = new System.Windows.Forms.Panel();
+            this._inputAreaPanel.SuspendLayout();
+            this.containedInputPanel.SuspendLayout();
             this.SuspendLayout();
-
-            // --- Overall Input Area Container ---
-            _inputAreaPanel.Dock = DockStyle.Bottom;
-            _inputAreaPanel.Height = 75;
-            _inputAreaPanel.BackColor = Color.White;
-            _inputAreaPanel.Padding = new Padding(0, 0, 10, 10);
-
-            // --- Top Padding Panel ---
-            topPaddingPanel.Dock = DockStyle.Top;
-            topPaddingPanel.Height = 10;
-            topPaddingPanel.BackColor = Color.White;
-
-            // --- Clear History Button ---
-            _clearButton.IconChar = IconChar.TrashAlt;
-            _clearButton.IconSize = 18;
-            _clearButton.IconColor = Color.Gray;
-            _clearButton.FlatStyle = FlatStyle.Flat;
-            _clearButton.FlatAppearance.BorderSize = 0;
-            _clearButton.BackColor = Color.Transparent;
-            _clearButton.ForeColor = Color.Gray;
-            _clearButton.Text = "清空历史";
-            _clearButton.ImageAlign = ContentAlignment.MiddleLeft;
-            _clearButton.TextAlign = ContentAlignment.MiddleRight;
-            _clearButton.Width = 80;
-            _clearButton.Dock = DockStyle.Left;
-            _clearButton.Click += new System.EventHandler(this._clearButton_Click);
-            _clearButton.MouseEnter += new System.EventHandler(this._clearButton_MouseEnter);
-            _clearButton.MouseLeave += new System.EventHandler(this._clearButton_MouseLeave);
-
-            // --- Send Button ---
-            _sendButton.IconChar = IconChar.PaperPlane;
-            _sendButton.IconSize = 22;
-            _sendButton.IconColor = Color.White;
-            _sendButton.FlatStyle = FlatStyle.Flat;
-            _sendButton.FlatAppearance.BorderSize = 0;
-            _sendButton.BackColor = Color.FromArgb(0, 120, 215);
-            _sendButton.ForeColor = Color.White;
-            _sendButton.Text = "";
-            _sendButton.Width = 60;
-            _sendButton.Dock = DockStyle.Right;
-            _sendButton.Click += new System.EventHandler(this._sendButton_Click);
-            _sendButton.MouseEnter += new System.EventHandler(this._sendButton_MouseEnter);
-            _sendButton.MouseLeave += new System.EventHandler(this._sendButton_MouseLeave);
-
-            // --- Contained Input TextBox ---
-            containedInputPanel.Dock = DockStyle.Fill;
-            containedInputPanel.BackColor = Color.FromArgb(245, 245, 245);
-            containedInputPanel.Padding = new Padding(8, 5, 8, 5);
-            containedInputPanel.Controls.Add(_inputTextBox);
-
-            _inputTextBox.Multiline = true;
-            _inputTextBox.BorderStyle = BorderStyle.None;
-            _inputTextBox.Dock = DockStyle.Fill;
-            _inputTextBox.BackColor = Color.FromArgb(245, 245, 245);
-            _inputTextBox.Font = new Font("微软雅黑", 10F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(134)));
-            _inputTextBox.Text = "输入测绘问题...";
-            _inputTextBox.ForeColor = Color.Gray;
-            _inputTextBox.Enter += new System.EventHandler(this._inputTextBox_Enter);
-            _inputTextBox.Leave += new System.EventHandler(this._inputTextBox_Leave);
-            _inputTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this._inputTextBox_KeyDown);
-
-            // --- Assemble Input Area ---
-            _inputAreaPanel.Controls.Add(containedInputPanel);
-            _inputAreaPanel.Controls.Add(_clearButton);
-            _inputAreaPanel.Controls.Add(_sendButton);
-            _inputAreaPanel.Controls.Add(topPaddingPanel);
-
-            // --- WebBrowser ---
-            _webBrowser.Dock = DockStyle.Fill;
-            _webBrowser.IsWebBrowserContextMenuEnabled = false;
-            _webBrowser.AllowWebBrowserDrop = false;
-            _webBrowser.ScriptErrorsSuppressed = true;
-            _webBrowser.ObjectForScripting = this;
-
-            // --- Main Control Assembly ---
-            this.Controls.Add(_webBrowser);
-            this.Controls.Add(_inputAreaPanel);
-
-            containedInputPanel.ResumeLayout(false);
-            containedInputPanel.PerformLayout();
-            _inputAreaPanel.ResumeLayout(false);
-            _inputAreaPanel.PerformLayout();
+            // 
+            // _webBrowser
+            // 
+            this._webBrowser.AllowWebBrowserDrop = false;
+            this._webBrowser.Dock = System.Windows.Forms.DockStyle.Fill;
+            this._webBrowser.IsWebBrowserContextMenuEnabled = false;
+            this._webBrowser.Location = new System.Drawing.Point(0, 0);
+            this._webBrowser.Name = "_webBrowser";
+            this._webBrowser.ScriptErrorsSuppressed = true;
+            this._webBrowser.Size = new System.Drawing.Size(150, 75);
+            this._webBrowser.TabIndex = 0;
+            // 
+            // _inputTextBox
+            // 
+            this._inputTextBox.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(245)))), ((int)(((byte)(245)))));
+            this._inputTextBox.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this._inputTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
+            this._inputTextBox.Font = new System.Drawing.Font("微软雅黑", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this._inputTextBox.ForeColor = System.Drawing.Color.Gray;
+            this._inputTextBox.Location = new System.Drawing.Point(8, 5);
+            this._inputTextBox.Multiline = true;
+            this._inputTextBox.Name = "_inputTextBox";
+            this._inputTextBox.Size = new System.Drawing.Size(0, 45);
+            this._inputTextBox.TabIndex = 0;
+            this._inputTextBox.Text = "输入测绘问题...";
+            this._inputTextBox.Enter += new System.EventHandler(this._inputTextBox_Enter);
+            this._inputTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this._inputTextBox_KeyDown);
+            this._inputTextBox.Leave += new System.EventHandler(this._inputTextBox_Leave);
+            // 
+            // _sendButton
+            // 
+            this._sendButton.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(120)))), ((int)(((byte)(215)))));
+            this._sendButton.Dock = System.Windows.Forms.DockStyle.Right;
+            this._sendButton.FlatAppearance.BorderSize = 0;
+            this._sendButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this._sendButton.ForeColor = System.Drawing.Color.White;
+            this._sendButton.IconChar = FontAwesome.Sharp.IconChar.PaperPlane;
+            this._sendButton.IconColor = System.Drawing.Color.White;
+            this._sendButton.IconFont = FontAwesome.Sharp.IconFont.Auto;
+            this._sendButton.IconSize = 22;
+            this._sendButton.Location = new System.Drawing.Point(80, 10);
+            this._sendButton.Name = "_sendButton";
+            this._sendButton.Size = new System.Drawing.Size(60, 55);
+            this._sendButton.TabIndex = 2;
+            this._sendButton.UseVisualStyleBackColor = false;
+            this._sendButton.Click += new System.EventHandler(this._sendButton_Click);
+            this._sendButton.MouseEnter += new System.EventHandler(this._sendButton_MouseEnter);
+            this._sendButton.MouseLeave += new System.EventHandler(this._sendButton_MouseLeave);
+            // 
+            // _clearButton
+            // 
+            this._clearButton.BackColor = System.Drawing.Color.Transparent;
+            this._clearButton.Dock = System.Windows.Forms.DockStyle.Left;
+            this._clearButton.FlatAppearance.BorderSize = 0;
+            this._clearButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this._clearButton.ForeColor = System.Drawing.Color.Gray;
+            this._clearButton.IconChar = FontAwesome.Sharp.IconChar.TrashAlt;
+            this._clearButton.IconColor = System.Drawing.Color.Gray;
+            this._clearButton.IconFont = FontAwesome.Sharp.IconFont.Auto;
+            this._clearButton.IconSize = 18;
+            this._clearButton.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this._clearButton.Location = new System.Drawing.Point(0, 10);
+            this._clearButton.Name = "_clearButton";
+            this._clearButton.Size = new System.Drawing.Size(80, 55);
+            this._clearButton.TabIndex = 1;
+            this._clearButton.Text = "清空历史";
+            this._clearButton.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this._clearButton.UseVisualStyleBackColor = false;
+            this._clearButton.Click += new System.EventHandler(this._clearButton_Click);
+            this._clearButton.MouseEnter += new System.EventHandler(this._clearButton_MouseEnter);
+            this._clearButton.MouseLeave += new System.EventHandler(this._clearButton_MouseLeave);
+            // 
+            // _inputAreaPanel
+            // 
+            this._inputAreaPanel.BackColor = System.Drawing.Color.White;
+            this._inputAreaPanel.Controls.Add(this.containedInputPanel);
+            this._inputAreaPanel.Controls.Add(this._clearButton);
+            this._inputAreaPanel.Controls.Add(this._sendButton);
+            this._inputAreaPanel.Controls.Add(this.topPaddingPanel);
+            this._inputAreaPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this._inputAreaPanel.Location = new System.Drawing.Point(0, 75);
+            this._inputAreaPanel.Name = "_inputAreaPanel";
+            this._inputAreaPanel.Padding = new System.Windows.Forms.Padding(0, 0, 10, 10);
+            this._inputAreaPanel.Size = new System.Drawing.Size(150, 75);
+            this._inputAreaPanel.TabIndex = 1;
+            // 
+            // containedInputPanel
+            // 
+            this.containedInputPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(245)))), ((int)(((byte)(245)))));
+            this.containedInputPanel.Controls.Add(this._inputTextBox);
+            this.containedInputPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.containedInputPanel.Location = new System.Drawing.Point(80, 10);
+            this.containedInputPanel.Name = "containedInputPanel";
+            this.containedInputPanel.Padding = new System.Windows.Forms.Padding(8, 5, 8, 5);
+            this.containedInputPanel.Size = new System.Drawing.Size(0, 55);
+            this.containedInputPanel.TabIndex = 0;
+            // 
+            // topPaddingPanel
+            // 
+            this.topPaddingPanel.BackColor = System.Drawing.Color.White;
+            this.topPaddingPanel.Dock = System.Windows.Forms.DockStyle.Top;
+            this.topPaddingPanel.Location = new System.Drawing.Point(0, 0);
+            this.topPaddingPanel.Name = "topPaddingPanel";
+            this.topPaddingPanel.Size = new System.Drawing.Size(140, 10);
+            this.topPaddingPanel.TabIndex = 3;
+            // 
+            // AiChatHtmlWidget
+            // 
+            this.Controls.Add(this._webBrowser);
+            this.Controls.Add(this._inputAreaPanel);
+            this.Name = "AiChatHtmlWidget";
+            this._inputAreaPanel.ResumeLayout(false);
+            this.containedInputPanel.ResumeLayout(false);
+            this.containedInputPanel.PerformLayout();
             this.ResumeLayout(false);
+
         }
 
         private void _clearButton_Click(object sender, EventArgs e)

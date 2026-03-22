@@ -46,10 +46,10 @@ namespace AiAssistant.UIControls
         {
             this.Font = new Font("微软雅黑", 10F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(134)));
             this.BackColor = Color.FromArgb(243, 243, 243);
-            InitializeComponent();
+            InitUI();
         }
 
-        private void InitializeComponent()
+        private void InitUI()
         {
             _chatHistoryRichTextBox = new RichTextBox
             {

@@ -10,6 +10,9 @@ using System.Windows.Forms;
 
 namespace AiAssistant.UIControls
 {
+    /// <summary>
+    /// 一个基于 ScintillaNET 的智能代码编辑器，提供 AI 代码补全（幽灵文本）、多语言语法高亮和上下文操作功能。
+    /// </summary>
     public class AiAutoCompleteEditor : Scintilla
     {
         private static readonly HttpClient _httpClient = new HttpClient();
@@ -19,8 +22,14 @@ namespace AiAssistant.UIControls
         private int _ghostLength = 0;
         private const int GhostStyleIndex = 50;
 
+        /// <summary>
+        /// 定义编辑器支持的编程语言。
+        /// </summary>
         public enum CodeLanguage { PlainText, CSharp, ST }
         private CodeLanguage _currentLanguage;
+        /// <summary>
+        /// 获取或设置编辑器的当前编程语言，这将影响语法高亮和 AI 补全的行为。
+        /// </summary>
         public CodeLanguage CurrentLanguage
         {
             get { return _currentLanguage; }
@@ -31,16 +40,44 @@ namespace AiAssistant.UIControls
             }
         }
 
+        /// <summary>
+        /// 当用户通过上下文菜单请求 AI 对选定代码执行操作（如解释、查找错误）时触发。
+        /// </summary>
         public event EventHandler<AiActionRequestedEventArgs> OnAiActionRequested;
+        /// <summary>
+        /// 当用户按下快捷键（Ctrl+J）请求将焦点切换到聊天窗口时触发。
+        /// </summary>
         public event EventHandler OnFocusChatRequested;
 
+        /// <summary>
+        /// 获取或设置 AI 连接模式（本地服务器或直连）。
+        /// </summary>
         public AiConnectionMode ConnectionMode { get; set; } = AiConnectionMode.LocalServer;
+        /// <summary>
+        /// 获取或设置本地服务器的补全 API 地址。
+        /// </summary>
         public string ServerApiUrl { get; set; } = "http://localhost:5000/api/completion";
+        /// <summary>
+        /// 获取或设置直连 OpenAI 兼容 API 的基础 URL。
+        /// </summary>
         public string DirectApiBaseUrl { get; set; } = "https://api.openai.com/v1";
+        /// <summary>
+        /// 获取或设置直连 API 所需的密钥。
+        /// </summary>
         public string DirectApiKey { get; set; } = "";
+        /// <summary>
+        /// 获取或设置直连 API 使用的模型名称。
+        /// </summary>
         public string DirectApiModel { get; set; } = "gpt-3.5-turbo";
+        /// <summary>
+        /// 获取或设置发送给 AI 模型的系统提示，用于代码补全场景。
+        /// </summary>
         public string SystemPrompt { get; set; } = "你是一个代码补全引擎，只输出光标后的补全代码，不要任何解释";
 
+        /// <summary>
+        /// 初始化 AiAutoCompleteEditor 控件的新实例。
+        /// </summary>
+        /// <param name="language">编辑器的初始语言设置。</param>
         public AiAutoCompleteEditor(CodeLanguage language = CodeLanguage.CSharp)
         {
             InitEditorStyle();
@@ -376,16 +413,27 @@ namespace AiAssistant.UIControls
             }
         }
 
+        /// <summary>
+        /// 在当前光标位置插入文本。
+        /// </summary>
+        /// <param name="text">要插入的文本。</param>
         public void InsertTextAtCursor(string text)
         {
             this.InsertText(this.CurrentPosition, text);
         }
 
+        /// <summary>
+        /// 替换当前选中的文本。
+        /// </summary>
+        /// <param name="text">用于替换的文本。</param>
         public void ReplaceSelectedText(string text)
         {
             this.ReplaceSelection(text);
         }
 
+        /// <summary>
+        /// 将焦点设置到编辑器。
+        /// </summary>
         public void FocusEditor() { this.Focus(); }
 
         protected override void Dispose(bool disposing)

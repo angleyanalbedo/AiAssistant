@@ -7,7 +7,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>AiAssistant.UIControls</RootNamespace>
     <AssemblyName>AiAssistant.UIControls</AssemblyName>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Authors>angleyanalbedo</Authors>
     <Copyright>Copyright (c) angleyanalbedo 2026</Copyright>
     <Description>A high-performance AI UI component library for .NET 4.5 WinForms, providing ghost-text completion, ST/C# syntax highlighting, and dual-engine chat widgets.</Description>

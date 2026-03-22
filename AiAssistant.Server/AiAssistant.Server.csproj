@@ -4,6 +4,15 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <Authors>angleyanalbedo</Authors>
+    <Copyright>Copyright (c) angleyanalbedo 2026</Copyright>
+    <Description>A backend server for the AiAssistant UI components, providing AI chat functionalities.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/angleyanalbedo/AiAssistant</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/angleyanalbedo/AiAssistant.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>ai, chat, webapi, openai, backend</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,0 +1,76 @@
+name: Publish to NuGet
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on version tags, e.g. v1.0.0
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    environment: Production
+    permissions:
+      id-token: write # Required for NuGet.org Trusted Publishing
+      contents: read  # Required for actions/checkout
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          8.0.x
+          6.0.x
+
+    - name: Setup NuGet.exe
+      uses: nuget/setup-nuget@v1
+      with:
+        nuget-version: 'latest'
+          
+    - name: Restore dependencies
+      run: dotnet restore AiAssistant.UIControls/AiAssistant.UIControls.csproj
+      
+    - name: Build
+      run: |
+        $Version = "${{ github.ref_name }}".TrimStart('v')
+        if ("${{ github.ref_type }}" -eq "tag") {
+            dotnet build AiAssistant.UIControls/AiAssistant.UIControls.csproj --configuration Release /p:Version=$Version
+        } else {
+            dotnet build AiAssistant.UIControls/AiAssistant.UIControls.csproj --configuration Release
+        }
+      shell: pwsh
+
+    - name: Pack
+      run: |
+        $Version = "${{ github.ref_name }}".TrimStart('v')
+        if ("${{ github.ref_type }}" -eq "tag") {
+            dotnet pack AiAssistant.UIControls/AiAssistant.UIControls.csproj --configuration Release --no-build --output ./nupkgs /p:Version=$Version
+        } else {
+            dotnet pack AiAssistant.UIControls/AiAssistant.UIControls.csproj --configuration Release --no-build --output ./nupkgs
+        }
+      shell: pwsh
+      
+    - name: Verify Package Creation
+      run: ls ./nupkgs
+      
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v1
+      
+    - name: NuGet Login
+      uses: NuGet/login@v1
+      id: nuget-login
+      with:
+        # NuGet.org username
+        user: angleyanalbedo
+        # NuGet.org API Key is automatically generated via OIDC token exchange
+        # No secrets required here!
+
+    - name: Publish to NuGet (Trusted Publishing)
+      # Use the temporary API key from the login step
+      run: |
+        foreach($file in (Get-ChildItem "./nupkgs/*.nupkg")) {
+            dotnet nuget push $file.FullName --source https://api.nuget.org/v3/index.json --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --skip-duplicate
+        }
+      shell: pwsh

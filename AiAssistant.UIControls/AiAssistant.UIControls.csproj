@@ -17,6 +17,7 @@
     <RepositoryUrl>https://github.com/angleyanalbedo/AiAssistant.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>winforms, ai, autocomplete, chat, scintilla, editor</PackageTags>
+    <IncludeSymbols>True</IncludeSymbols>
   </PropertyGroup>
 
   <ItemGroup>

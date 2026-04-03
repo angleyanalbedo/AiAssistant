@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using AiAssistant.UIControls.Utils;
 
 namespace AiAssistant.UIControls
 {
@@ -16,7 +17,7 @@ namespace AiAssistant.UIControls
         private RichTextBox _chatHistoryRichTextBox;
         private TextBox _userInput;
         private Button _sendButton;
-        private static readonly HttpClient _httpClient = new HttpClient();
+        private static readonly HttpClient _httpClient = AiHttpClientFactory.Create();
 
         /// <summary>
         /// 获取或设置本地服务器的 API 地址。

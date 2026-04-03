@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using AiAssistant.UIControls.Utils;
 
 namespace AiAssistant.UIControls
 {
@@ -14,7 +15,7 @@ namespace AiAssistant.UIControls
     /// </summary>
     public class AiAutoCompleteTextBox : Scintilla
     {
-        private static readonly HttpClient _httpClient = new HttpClient();
+        private static readonly HttpClient _httpClient = AiHttpClientFactory.Create();
         private System.Threading.CancellationTokenSource _aiCts;
         private string _ghostText = string.Empty;
         private int _ghostTextPosition = -1;

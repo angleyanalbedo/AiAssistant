@@ -33,7 +33,7 @@ namespace AiAssistant.UIControls
         private Panel _topBorderPanel;
         private Label _loadingLabel;
 
-        private static readonly HttpClient _httpClient = new HttpClient();
+        private static readonly HttpClient _httpClient = AiHttpClientFactory.Create();
         private bool _isWebViewReady = false;
         private System.Collections.Generic.List<object> _messageHistory = new System.Collections.Generic.List<object>();
 

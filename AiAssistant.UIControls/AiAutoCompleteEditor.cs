@@ -15,7 +15,7 @@ namespace AiAssistant.UIControls
     /// </summary>
     public class AiAutoCompleteEditor : Scintilla
     {
-        private static readonly HttpClient _httpClient = new HttpClient();
+        private static readonly HttpClient _httpClient = AiHttpClientFactory.Create();
         private System.Threading.CancellationTokenSource _aiCts;
         private bool _isGhostActive = false;
         private int _ghostStart = 0;

@@ -32,7 +32,7 @@ namespace AiAssistant.UIControls
         private IconButton _clearButton;
         private Panel _inputAreaPanel;
 
-        private static readonly HttpClient _httpClient = new HttpClient();
+        private static readonly HttpClient _httpClient = AiHttpClientFactory.Create();
         private System.Collections.Generic.List<object> _messageHistory = new System.Collections.Generic.List<object>();
         private Panel containedInputPanel;
         private Panel topPaddingPanel;
